@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 
-class TextInputField extends StatelessWidget {
-  const TextInputField({
-    super.key,
-    required this.controller,
-    required this.text,
-    this.cursorColor = const Color(0xFF434343),
-    this.titleColor = const Color(0xFF434343),
-    this.keyboardType = TextInputType.text
-  });
+class UsernameField extends StatefulWidget {
+  const UsernameField(
+      {super.key,
+      required this.controller,
+      this.cursorColor = const Color(0xFF434343),
+      this.titleColor = const Color(0xFF434343),
+      this.keyboardType = TextInputType.text});
 
   final Color cursorColor;
   final Color titleColor;
-  final TextEditingController controller;
-  final String text;
   final TextInputType keyboardType;
+  final TextEditingController? controller;
+
+  @override
+  State<UsernameField> createState() => _UsernameFieldState();
+}
+
+class _UsernameFieldState extends State<UsernameField> {
+  @override
+  void dispose() {
+    widget.controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +35,12 @@ class TextInputField extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(left: screenWidth * 0.07),
           child: Text(
-            text,
-            style:Theme.of(context).textTheme.titleLarge!.copyWith(
-              fontSize: 13,
-              color: titleColor,
-              fontWeight: FontWeight.w600,
-            ),
+            "Username",
+            style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                  fontSize: 13,
+                  color: widget.titleColor,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ),
         Container(
@@ -49,21 +57,21 @@ class TextInputField extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.07),
             child: TextFormField(
-              // Alti parametri de specificat
-              controller: controller,
-              style:Theme.of(context).textTheme.bodyLarge!.copyWith(
-                color: cursorColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-              cursorColor: cursorColor,
-              keyboardType: keyboardType,
+              controller: widget.controller,
+              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                    color: widget.cursorColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+              cursorColor: widget.cursorColor,
+              keyboardType: widget.keyboardType,
               autocorrect: false,
               textCapitalization: TextCapitalization.none,
               decoration: InputDecoration(
-                fillColor: cursorColor,
+                fillColor: widget.cursorColor,
                 border: InputBorder.none,
               ),
+              onSaved: (value) {},
             ),
           ),
         ),

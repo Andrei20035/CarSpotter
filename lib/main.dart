@@ -10,11 +10,13 @@ import 'package:car_spotter/ui/screens/profile_customization.dart';
 import 'package:car_spotter/ui/screens/profile_dashboard.dart';
 import 'package:car_spotter/ui/screens/settings.dart';
 import 'package:car_spotter/ui/screens/your_car.dart';
-import 'package:country_picker/country_picker.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 const List<String> assets = [
   "assets/images/icons/google-logo.png",
@@ -110,7 +112,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: theme,
-      initialRoute: '/yourCar',
+      initialRoute: '/AppPresentation',
       routes: {
         '/AppPresentation': (context) =>
             AppPresentation(screens: ScreenList().screens),
@@ -130,4 +132,5 @@ Future<void> preloadAssets(BuildContext context, localAssets) async {
   for (String asset in localAssets) {
     await precacheImage(AssetImage(asset), context);
   }
+  
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "580518214015",
+    "project_id": "carspotter-9836c",
+    "storage_bucket": "carspotter-9836c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580518214015:android:b20a8584b4bbb08a3f824a",
+        "android_client_info": {
+          "package_name": "com.example.car_spotter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD55Wi2qRuRWmDJnhdMs_5K1c9eMJc-C8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

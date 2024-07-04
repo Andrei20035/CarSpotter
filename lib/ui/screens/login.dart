@@ -1,6 +1,8 @@
 import 'package:car_spotter/main.dart';
 import 'package:car_spotter/ui/widgets/login_button.dart';
-import 'package:car_spotter/ui/widgets/text_input_field.dart';
+import 'package:car_spotter/ui/widgets/login_screen/email.dart';
+import 'package:car_spotter/ui/widgets/login_screen/password.dart';
+import 'package:car_spotter/ui/widgets/login_screen/username.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_gradient_text/simple_gradient_text.dart';
 
@@ -20,27 +22,39 @@ class _LogInScreenState extends State<LogInScreen> {
   double containerHeight = 0.571;
   double titleSpace = 0.123;
 
-  List<String> fields = ["Email address", "Password"];
+  final _form = GlobalKey<FormState>();
+
+  late TextEditingController? usernameController;
+  late TextEditingController emailController;
+  late TextEditingController passwordController;
+
+  var _enteredUsername = '';
+  var _enteredEmail = '';
+  var _enteredPassword = '';
 
   bool isSignUp = false;
 
-  late TextEditingController emailController;
-  late TextEditingController passwordController;
-  TextEditingController? usernameController;
+  void _submit() {
+    final isValid = _form.currentState!.validate();
+
+    if (isValid) {
+      _form.currentState!.save();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    usernameController = TextEditingController();
     emailController = TextEditingController();
     passwordController = TextEditingController();
-    usernameController = null;
   }
 
   @override
   void dispose() {
+    usernameController?.dispose();
     emailController.dispose();
     passwordController.dispose();
-    usernameController?.dispose();
     super.dispose();
   }
 
@@ -49,8 +63,7 @@ class _LogInScreenState extends State<LogInScreen> {
       isSignUp = true;
       containerHeight = containerHeightSignUp;
       titleSpace = titleSpaceSignUp;
-      fields.insert(0, 'Username');
-      usernameController = TextEditingController();
+      usernameController ??= TextEditingController();
     });
   }
 
@@ -59,7 +72,6 @@ class _LogInScreenState extends State<LogInScreen> {
       isSignUp = false;
       containerHeight = containerHeightLogIn;
       titleSpace = titleSpaceLogIn;
-      fields.removeAt(0);
       usernameController?.dispose();
       usernameController = null;
     });
@@ -97,7 +109,8 @@ class _LogInScreenState extends State<LogInScreen> {
                   SizedBox(height: screenHeight * 0.055),
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        vertical: screenHeight * titleSpace),
+                      vertical: screenHeight * titleSpace,
+                    ),
                     child: Column(
                       children: [
                         GradientText(
@@ -130,7 +143,6 @@ class _LogInScreenState extends State<LogInScreen> {
                       ],
                     ),
                   ),
-                  // SizedBox(height: screenHeight * 0.03),
                   Container(
                     height: screenHeight * containerHeight,
                     width: double.infinity,
@@ -144,6 +156,7 @@ class _LogInScreenState extends State<LogInScreen> {
                       ),
                     ),
                     child: Form(
+                      key: _form,
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                             horizontal: screenWidth * 0.06),
@@ -155,27 +168,19 @@ class _LogInScreenState extends State<LogInScreen> {
                               Column(
                                 children: [
                                   SizedBox(height: screenHeight * 0.0032),
-                                  TextInputField(
-                                    text: 'Username',
-                                    controller: usernameController!,
-                                  ),
+                                  UsernameField(controller: usernameController),
                                   SizedBox(height: screenHeight * 0.015),
                                 ],
                               ),
-                            TextInputField(
-                              text: 'Email address',
-                              controller: emailController,
-                            ),
+                            EmailField(controller: emailController),
                             SizedBox(height: screenHeight * 0.015),
-                            TextInputField(
-                              text: 'Password',
-                              controller: passwordController,
-                            ),
+                            PasswordField(controller: passwordController),
                             SizedBox(height: screenHeight * 0.095),
                             LoginButton(
                               text: isSignUp ? "Sign Up" : "Log In",
                               color: const Color(0xFFF0AB25),
                               onPressed: () {
+                                _submit();
                                 Navigator.pushNamed(
                                     context, "/profileCustomization");
                               },

@@ -48,6 +48,7 @@ dependencies:
   text_scroll: ^0.2.0
   vm_service: ^14.2.1
   country_picker: ^2.0.26
+  firebase_core: ^3.1.1
 
 dev_dependencies:
   flutter_test:

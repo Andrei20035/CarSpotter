@@ -1,7 +1,6 @@
 import 'package:car_spotter/main.dart';
 import 'package:car_spotter/models/user.dart';
 import 'package:car_spotter/providers/user_provider.dart';
-import 'package:car_spotter/ui/screens/settings.dart';
 import 'package:car_spotter/ui/widgets/leaderboard.dart';
 import 'package:car_spotter/ui/widgets/spot_score.dart';
 import 'package:flutter/material.dart';
