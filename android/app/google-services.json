@@ -12,7 +12,12 @@
           "package_name": "com.example.car_spotter"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "580518214015-kljpoi5b1os80n1red28d3dkniv9au1r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD55Wi2qRuRWmDJnhdMs_5K1c9eMJc-C8E"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580518214015-kljpoi5b1os80n1red28d3dkniv9au1r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580518214015-o04ghg44tmc02crdnir66sjscvjo2pal.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.carSpotter"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class UsernameField extends StatefulWidget {
+class UsernameField extends StatelessWidget {
   const UsernameField(
       {super.key,
       required this.controller,
@@ -12,17 +12,6 @@ class UsernameField extends StatefulWidget {
   final Color titleColor;
   final TextInputType keyboardType;
   final TextEditingController? controller;
-
-  @override
-  State<UsernameField> createState() => _UsernameFieldState();
-}
-
-class _UsernameFieldState extends State<UsernameField> {
-  @override
-  void dispose() {
-    widget.controller?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +27,7 @@ class _UsernameFieldState extends State<UsernameField> {
             "Username",
             style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   fontSize: 13,
-                  color: widget.titleColor,
+                  color: titleColor,
                   fontWeight: FontWeight.w600,
                 ),
           ),
@@ -57,21 +46,23 @@ class _UsernameFieldState extends State<UsernameField> {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.07),
             child: TextFormField(
-              controller: widget.controller,
+              controller: controller,
               style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                    color: widget.cursorColor,
+                    color: cursorColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
-              cursorColor: widget.cursorColor,
-              keyboardType: widget.keyboardType,
+              cursorColor: cursorColor,
+              keyboardType: keyboardType,
               autocorrect: false,
               textCapitalization: TextCapitalization.none,
               decoration: InputDecoration(
-                fillColor: widget.cursorColor,
+                fillColor: cursorColor,
                 border: InputBorder.none,
               ),
-              onSaved: (value) {},
+              onSaved: (value) {
+                controller?.text = value ?? '';
+              },
             ),
           ),
         ),

@@ -1,28 +1,18 @@
 import 'package:flutter/material.dart';
 
-class EmailField extends StatefulWidget {
-  const EmailField(
-      {super.key,
-      required this.controller,
-      this.cursorColor = const Color(0xFF434343),
-      this.titleColor = const Color(0xFF434343),
-      this.keyboardType = TextInputType.text});
+class EmailField extends StatelessWidget {
+  const EmailField({
+    super.key,
+    required this.controller,
+    this.cursorColor = const Color(0xFF434343),
+    this.titleColor = const Color(0xFF434343),
+    this.keyboardType = TextInputType.text,
+  });
 
   final Color cursorColor;
   final Color titleColor;
   final TextInputType keyboardType;
   final TextEditingController controller;
-
-  @override
-  State<EmailField> createState() => _EmailFieldState();
-}
-
-class _EmailFieldState extends State<EmailField> {
-  @override
-  void dispose() {
-    widget.controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +28,7 @@ class _EmailFieldState extends State<EmailField> {
             "Email address",
             style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   fontSize: 13,
-                  color: widget.titleColor,
+                  color: titleColor,
                   fontWeight: FontWeight.w600,
                 ),
           ),
@@ -57,18 +47,18 @@ class _EmailFieldState extends State<EmailField> {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.07),
             child: TextFormField(
-              controller: widget.controller,
+              controller: controller,
               style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                    color: widget.cursorColor,
+                    color: cursorColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
-              cursorColor: widget.cursorColor,
-              keyboardType: widget.keyboardType,
+              cursorColor: cursorColor,
+              keyboardType: keyboardType,
               autocorrect: false,
               textCapitalization: TextCapitalization.none,
               decoration: InputDecoration(
-                fillColor: widget.cursorColor,
+                fillColor: cursorColor,
                 border: InputBorder.none,
               ),
               validator: (value) {
@@ -79,7 +69,9 @@ class _EmailFieldState extends State<EmailField> {
                 }
                 return null;
               },
-              onSaved: (value) {},
+              onSaved: (value) {
+                controller.text = value ?? '';
+              },
             ),
           ),
         ),

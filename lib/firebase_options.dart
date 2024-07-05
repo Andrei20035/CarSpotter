@@ -63,6 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '580518214015',
     projectId: 'carspotter-9836c',
     storageBucket: 'carspotter-9836c.appspot.com',
+    iosClientId: '580518214015-o04ghg44tmc02crdnir66sjscvjo2pal.apps.googleusercontent.com',
     iosBundleId: 'com.example.carSpotter',
   );
+
 }

@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 
-class PasswordField extends StatelessWidget {
-  const PasswordField(
-      {super.key,
-      required this.controller,
-      this.cursorColor = const Color(0xFF434343),
-      this.titleColor = const Color(0xFF434343),
-      this.keyboardType = TextInputType.text});
+class FirstLastName extends StatelessWidget {
+  const FirstLastName({
+    super.key,
+    required this.controller,
+    required this.text,
+    this.cursorColor = const Color(0xFF434343),
+    this.titleColor = const Color(0xFFDFA3A3),
+    this.keyboardType = TextInputType.text,
+    this.focusNode,
+    this.onEditingComplete
+  });
 
   final Color cursorColor;
   final Color titleColor;
-  final TextInputType keyboardType;
   final TextEditingController controller;
+  final String text;
+  final TextInputType keyboardType;
+  final FocusNode? focusNode;
+  final VoidCallback? onEditingComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +31,12 @@ class PasswordField extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(left: screenWidth * 0.07),
           child: Text(
-            "Password",
-            style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                  fontSize: 13,
-                  color: titleColor,
-                  fontWeight: FontWeight.w600,
-                ),
+            text,
+            style:Theme.of(context).textTheme.titleLarge!.copyWith(
+              fontSize: 13,
+              color: titleColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Container(
@@ -46,13 +53,14 @@ class PasswordField extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.07),
             child: TextFormField(
+              // Alti parametri de specificat
+              focusNode: focusNode,
               controller: controller,
-              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                    color: cursorColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-              obscureText: true,
+              style:Theme.of(context).textTheme.bodyLarge!.copyWith(
+                color: cursorColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
               cursorColor: cursorColor,
               keyboardType: keyboardType,
               autocorrect: false,
@@ -61,17 +69,7 @@ class PasswordField extends StatelessWidget {
                 fillColor: cursorColor,
                 border: InputBorder.none,
               ),
-              validator: (value) {
-                if (value == null ||
-                    value.trim().length < 10) {
-                  return "Please enter a valid password";
-                }
-                return null;
-              },
-              onSaved: (value) {
-                controller.text = value ?? '';
-              },
-
+              onEditingComplete: onEditingComplete,
             ),
           ),
         ),
