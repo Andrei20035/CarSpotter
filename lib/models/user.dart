@@ -38,7 +38,7 @@ class User {
     List<Post>? posts,
     List<User>? friends,
     List<User>? friendRequests,
-  })  : id = id ?? Uuid().v4(),
+  })  : id = id ?? const Uuid().v4(),
         posts = posts ?? [],
         currentDayPosts = currentDayPosts ?? [],
         friends = friends ?? [],

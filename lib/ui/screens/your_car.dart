@@ -1,3 +1,4 @@
+import 'package:car_spotter/controllers/add_image_controller.dart';
 import 'package:car_spotter/main.dart';
 import 'package:car_spotter/ui/widgets/add_picture.dart';
 import 'package:car_spotter/ui/widgets/your_car_screen/car_brands_dropdown.dart';
@@ -15,6 +16,20 @@ class YourCar extends StatefulWidget {
 }
 
 class _YourCarState extends State<YourCar> {
+  late AddPictureController yourCarController;
+
+  @override
+  void initState() {
+    super.initState();
+    yourCarController = AddPictureController();
+  }
+
+  @override
+  void dispose() {
+    yourCarController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -54,7 +69,7 @@ class _YourCarState extends State<YourCar> {
                           fontWeight: FontWeight.w600),
                     ),
                     SizedBox(height: screenHeight * 0.02875),
-                    const AddPicture(),
+                    AddPicture(controller: yourCarController),
                     SizedBox(height: screenHeight * 0.07125),
                     const CarBrandsDropdown(),
                     SizedBox(height: screenHeight * 0.02),

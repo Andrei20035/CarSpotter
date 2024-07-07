@@ -1,45 +1,45 @@
+import 'package:car_spotter/controllers/add_image_controller.dart';
 import 'package:car_spotter/main.dart';
+import 'package:car_spotter/providers/user_profile_provider.dart';
 import 'package:car_spotter/ui/widgets/add_picture.dart';
 import 'package:car_spotter/ui/widgets/profile_customization_screen/country_picker.dart';
 import 'package:car_spotter/ui/widgets/login_button.dart';
 import 'package:car_spotter/ui/widgets/profile_customization_screen/name.dart';
-import 'package:car_spotter/ui/widgets/text_input_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileCustomization extends StatefulWidget {
+class ProfileCustomization extends ConsumerStatefulWidget {
   const ProfileCustomization({super.key});
 
   @override
-  State<ProfileCustomization> createState() => _ProfileCustomizationState();
+  ConsumerState<ProfileCustomization> createState() => _ProfileCustomizationState();
 }
 
-class _ProfileCustomizationState extends State<ProfileCustomization> {
+class _ProfileCustomizationState extends ConsumerState<ProfileCustomization> {
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController firstNameController;
   late TextEditingController lastNameController;
-  late FocusNode firstNameFocusNode;
-  late FocusNode lastNameFocusNode;
+  late AddPictureController profilePictureController;
+  late String selectedCountry;
 
   @override
   void initState() {
     super.initState();
     firstNameController = TextEditingController();
     lastNameController = TextEditingController();
-    firstNameFocusNode = FocusNode();
-    lastNameFocusNode = FocusNode();
+    profilePictureController = AddPictureController();
   }
 
   @override
   void dispose() {
     super.dispose();
+    profilePictureController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
-    firstNameFocusNode.dispose();
-    lastNameFocusNode.dispose();
   }
 
   void _unfocusTextFields() {
-    firstNameFocusNode.unfocus();
-    lastNameFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -71,50 +71,61 @@ class _ProfileCustomizationState extends State<ProfileCustomization> {
               child: SingleChildScrollView(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-                  child: Column(
-                    children: [
-                      SizedBox(height: screenHeight * 0.12375),
-                      Text(
-                        "Your profile picture",
-                        style: theme.textTheme.bodyLarge!.copyWith(
-                            color: const Color(0xFFDFA3A3),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      SizedBox(height: screenHeight * 0.02875),
-                      const AddPicture(),
-                      SizedBox(height: screenHeight * 0.07125),
-                      FirstLastName(
-                        controller: firstNameController,
-                        text: "First name",
-                        focusNode: firstNameFocusNode,
-                        onEditingComplete: _unfocusTextFields,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      FirstLastName(
-                        controller: firstNameController,
-                        text: "Last name",
-                        focusNode: lastNameFocusNode,
-                        onEditingComplete: _unfocusTextFields,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      const CountryPicker(),
-                      SizedBox(height: screenHeight * 0.08),
-                      LoginButton(
-                        color: const Color(0xFFF0AB25),
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/yourCar');
-                        },
-                        text: "Next",
-                      )
-                    ],
+                  child: Form(
+                    key: _formKey,
+                    child: Consumer(
+                      builder: (context, watch, _) {
+                        final userProfile = ref.watch(userLoginProfileProvider);
+                      return Column(
+                        children: [
+                          SizedBox(height: screenHeight * 0.12375),
+                          Text(
+                            "Your profile picture",
+                            style: theme.textTheme.bodyLarge!.copyWith(
+                                color: const Color(0xFFDFA3A3),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: screenHeight * 0.02875),
+                          AddPicture(controller: profilePictureController),
+                          SizedBox(height: screenHeight * 0.07125),
+                          FirstLastName(
+                            controller: firstNameController,
+                            text: "First name",
+                            onEditingComplete: _unfocusTextFields,
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+                          FirstLastName(
+                            controller: lastNameController,
+                            text: "Last name",
+                            onEditingComplete: _unfocusTextFields,
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+                          CountryPicker(onCountrySelected: (country) {
+                            selectedCountry = country;
+                          },),
+                          SizedBox(height: screenHeight * 0.08),
+                          LoginButton(
+                            color: const Color(0xFFF0AB25),
+                            onPressed: () {
+                              if(_formKey.currentState?.validate() ?? false) {
+                                userProfile.updateProfile(firstName: firstNameController.text, lastName: lastNameController.text, country: selectedCountry);
+                              }
+                              Navigator.pushNamed(context, '/yourCar');
+                            },
+                            text: "Next",
+                          )
+                        ],
+                      );
+                    
+                      },
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      ),),);
+    
   }
 }

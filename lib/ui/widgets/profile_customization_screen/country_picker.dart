@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 
 class CountryPicker extends StatefulWidget {
-  const CountryPicker({super.key});
+  const CountryPicker({super.key, required this.onCountrySelected});
+
+  final void Function(String countryName) onCountrySelected;
 
   @override
   State<CountryPicker> createState() => _CountryPickerState();
@@ -12,6 +14,7 @@ class CountryPicker extends StatefulWidget {
 class _CountryPickerState extends State<CountryPicker> {
   late String countryValue;
   late String flag;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +50,7 @@ class _CountryPickerState extends State<CountryPicker> {
                   countryValue = country.name;
                   flag = country.flagEmoji;
                 });
+                widget.onCountrySelected(countryValue);
               },
               countryListTheme: CountryListThemeData(
                 backgroundColor: const Color(0xFFD9D9D9),

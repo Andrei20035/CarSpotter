@@ -1,6 +1,8 @@
+import 'package:car_spotter/providers/user_profile_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FirstLastName extends StatelessWidget {
+class FirstLastName extends ConsumerWidget {
   const FirstLastName({
     super.key,
     required this.controller,
@@ -21,7 +23,7 @@ class FirstLastName extends StatelessWidget {
   final VoidCallback? onEditingComplete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -70,6 +72,13 @@ class FirstLastName extends StatelessWidget {
                 border: InputBorder.none,
               ),
               onEditingComplete: onEditingComplete,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your ${text.toLowerCase()}';
+                }
+                return null;
+              },
+            
             ),
           ),
         ),
