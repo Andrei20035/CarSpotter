@@ -135,7 +135,6 @@ fun OnboardingScreen(
             }
         }
 
-        // Page indicators at bottom
         HorizontalPagerIndicator(
             pagerState = pagerState,
             modifier = Modifier
