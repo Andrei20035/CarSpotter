@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -30,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -76,7 +78,9 @@ fun OnboardingScreen(
         )
     }
 
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState(
+        pageCount = { pages.size }
+    )
     val coroutineScope = rememberCoroutineScope()
 
     Box(
@@ -93,9 +97,9 @@ fun OnboardingScreen(
             }
     ) {
         HorizontalPager(
-            count = pages.size,
             state = pagerState,
-            userScrollEnabled = false
+            userScrollEnabled = false,
+            modifier = Modifier.fillMaxSize()
         ) { page ->
             OnboardingPageContent(pageData = pages[page])
         }
@@ -135,16 +139,12 @@ fun OnboardingScreen(
             }
         }
 
-        HorizontalPagerIndicator(
-            pagerState = pagerState,
+        FoundationPagerIndicator(
+            pageCount = pages.size,
+            currentPage = pagerState.currentPage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 40.dp),
-            activeColor = Color.White,
-            inactiveColor = Color.White.copy(alpha = 0.3f),
-            indicatorWidth = 8.dp,
-            indicatorHeight = 8.dp,
-            spacing = 8.dp
+                .padding(bottom = 40.dp)
         )
 
         // Tap instruction
@@ -161,6 +161,31 @@ fun OnboardingScreen(
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun FoundationPagerIndicator(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = Color.White,
+    inactiveColor: Color = Color.Gray,
+    indicatorSize: Dp = 8.dp,
+    spacing: Dp = 8.dp
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        modifier = modifier
+    ) {
+        repeat(pageCount) { index ->
+            Box(
+                modifier = Modifier
+                    .size(indicatorSize)
+                    .clip(CircleShape)
+                    .background(if (index == currentPage) activeColor else inactiveColor)
             )
         }
     }
