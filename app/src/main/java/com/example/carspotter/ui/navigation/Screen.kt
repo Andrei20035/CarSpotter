@@ -8,9 +8,4 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Camera : Screen("camera")
     object Feed : Screen("feed")
-
-    // Add any arguments to routes
-    object PostDetail : Screen("post_detail/{postId}") {
-        fun createRoute(postId: String) = "post_detail/$postId"
-    }
 }

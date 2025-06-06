@@ -10,15 +10,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,19 +30,21 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.carspotter.R
+import com.example.carspotter.ui.components.GradientText
+import com.example.carspotter.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
 @Composable
 fun OnboardingScreen(
     navController: NavController,
     onComplete: () -> Unit = {
-        navController.navigate("login") {
-            popUpTo("onboarding") {
+        navController.navigate(Screen.Login.route) {
+            popUpTo(Screen.Onboarding.route) {
                 inclusive = true
             }
         }
@@ -55,25 +56,26 @@ fun OnboardingScreen(
                 title = "Welcome to",
                 subtitle = "CarSpotter!",
                 imageRes = R.drawable.app_presentation_1,
-                backgroundColor = Color(0xFF1A1A1A)
+                titleColor = Color.White,
+                titleFontWeight = FontWeight.Normal,
+                subtitleFontSize = 48.sp,
+                subtitleFontWeight = FontWeight.Bold
             ),
             OnboardingPage(
                 title = "Spot the Unseen",
-                subtitle = "Uncover hidden gems on the streets and discover rare automotive treasures",
+                subtitle = "Uncover hidden gems on the streets, from vintage classics to the latest supercars.",
                 imageRes = R.drawable.app_presentation_2,
-                backgroundColor = Color(0xFF2C1810)
             ),
             OnboardingPage(
                 title = "Capture the Moment",
-                subtitle = "Snap and share your automotive encounters with fellow enthusiasts",
+                subtitle = "Snap and share your automotive encounters. Get recognized by a community of enthusiasts.",
                 imageRes = R.drawable.app_presentation_3,
-                backgroundColor = Color(0xFF1A2C1A)
             ),
             OnboardingPage(
                 title = "Become a Top Spotter 🌟",
-                subtitle = "Engage in challenges, earn badges, and climb the leaderboard",
+                subtitle = "Engage in challenges, earn badges, and climb the leaderboard.",
                 imageRes = R.drawable.app_presentation_4,
-                backgroundColor = Color(0xFF1A1A2C)
+
             )
         )
     }
@@ -91,7 +93,8 @@ fun OnboardingScreen(
                     if (pagerState.currentPage < pages.lastIndex) {
                         pagerState.animateScrollToPage(pagerState.currentPage + 1)
                     } else {
-                        onComplete()
+                        pagerState.animateScrollToPage(pagerState.currentPage - 3)
+//                        onComplete()
                     }
                 }
             }
@@ -101,51 +104,41 @@ fun OnboardingScreen(
             userScrollEnabled = false,
             modifier = Modifier.fillMaxSize()
         ) { page ->
-            OnboardingPageContent(pageData = pages[page])
+            OnboardingPageContent(pageData = pages[page], isFirstPage = pagerState.currentPage == 0)
         }
 
-        TextButton(
-            onClick = { onComplete() },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Skip",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 16.sp
-            )
-        }
-        // Progress indicator at top
+        val pageCount = pages.size
+        val currentPage = pagerState.currentPage
+        val currentPageOffset = pagerState.currentPageOffsetFraction
+
         Row(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 60.dp),
+                .align(Alignment.BottomCenter)
+                .padding(top = 60.dp)
+                .navigationBarsPadding()
+                .padding(48.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            repeat(pages.size) { index ->
+            repeat(pageCount) { index ->
+
+                val distance = kotlin.math.abs(index - (currentPage + currentPageOffset))
+                val width = lerp(
+                    start = 16.dp,
+                    stop = 32.dp,
+                    fraction = (1f - distance).coerceIn(0f, 1f)
+                )
+
+                val color = if (distance < 0.5f) Color.White else Color.White.copy(alpha = 0.3f)
+
                 Box(
                     modifier = Modifier
                         .height(4.dp)
-                        .width(if (index <= pagerState.currentPage) 24.dp else 8.dp)
+                        .width(width)
                         .clip(CircleShape)
-                        .background(
-                            if (index <= pagerState.currentPage)
-                                Color.White
-                            else
-                                Color.White.copy(alpha = 0.3f)
-                        )
+                        .background(color)
                 )
             }
         }
-
-        FoundationPagerIndicator(
-            pageCount = pages.size,
-            currentPage = pagerState.currentPage,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 40.dp)
-        )
 
         // Tap instruction
         Box(
@@ -167,38 +160,11 @@ fun OnboardingScreen(
 }
 
 @Composable
-fun FoundationPagerIndicator(
-    pageCount: Int,
-    currentPage: Int,
-    modifier: Modifier = Modifier,
-    activeColor: Color = Color.White,
-    inactiveColor: Color = Color.Gray,
-    indicatorSize: Dp = 8.dp,
-    spacing: Dp = 8.dp
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(spacing),
-        modifier = modifier
-    ) {
-        repeat(pageCount) { index ->
-            Box(
-                modifier = Modifier
-                    .size(indicatorSize)
-                    .clip(CircleShape)
-                    .background(if (index == currentPage) activeColor else inactiveColor)
-            )
-        }
-    }
-}
-
-@Composable
-fun OnboardingPageContent(pageData: OnboardingPage) {
+fun OnboardingPageContent(pageData: OnboardingPage, isFirstPage: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(pageData.backgroundColor)
     ) {
-        // Background image
         Image(
             painter = painterResource(id = pageData.imageRes),
             contentDescription = null,
@@ -207,7 +173,6 @@ fun OnboardingPageContent(pageData: OnboardingPage) {
             alpha = 0.8f
         )
 
-        // Gradient overlay for better text readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -222,7 +187,6 @@ fun OnboardingPageContent(pageData: OnboardingPage) {
                 )
         )
 
-        // Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -232,32 +196,40 @@ fun OnboardingPageContent(pageData: OnboardingPage) {
         ) {
             Spacer(modifier = Modifier.weight(1f))
 
-            // Title
             Text(
                 text = pageData.title,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    color = Color.White,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    color = pageData.titleColor,
+                    fontSize = pageData.titleFontSize,
+                    fontWeight = pageData.titleFontWeight,
+                    lineHeight = 50.sp,
+                    textAlign = TextAlign.Center,
+                )
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Subtitle
-            Text(
-                text = pageData.subtitle,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                textAlign = TextAlign.Center,
-                lineHeight = 40.sp
-            )
-
+            if (isFirstPage) {
+                GradientText(
+                    text = pageData.subtitle,
+                    fontWeight = pageData.subtitleFontWeight,
+                    fontSize = pageData.subtitleFontSize,
+                    lineHeight = pageData.lineHeight
+                )
+            } else {
+                Text(
+                    text = pageData.subtitle,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        color = pageData.subtitleColor,
+                        fontSize = pageData.subtitleFontSize,
+                        fontWeight = pageData.subtitleFontWeight,
+                        lineHeight = pageData.lineHeight,
+                        textAlign = TextAlign.Center
+                    )
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
+
