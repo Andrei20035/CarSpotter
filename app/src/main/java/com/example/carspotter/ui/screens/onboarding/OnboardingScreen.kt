@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -33,15 +35,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.carspotter.R
 import com.example.carspotter.ui.components.GradientText
 import com.example.carspotter.ui.navigation.Screen
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
 
 @Composable
 fun OnboardingScreen(
     navController: NavController,
+    viewModel: OnboardingViewModel = hiltViewModel(),
     onComplete: () -> Unit = {
         navController.navigate(Screen.Login.route) {
             popUpTo(Screen.Onboarding.route) {
@@ -80,10 +85,20 @@ fun OnboardingScreen(
         )
     }
 
-    val pagerState = rememberPagerState(
-        pageCount = { pages.size }
-    )
+    val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsState(initial = false)
+
+    val pagerState = rememberPagerState(pageCount = { pages.size })
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(isOnboardingCompleted) {
+        if(isOnboardingCompleted) {
+            onComplete()
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        viewModel.updateCurrentPage(pagerState.currentPage)
+    }
 
     Box(
         modifier = Modifier
@@ -93,8 +108,7 @@ fun OnboardingScreen(
                     if (pagerState.currentPage < pages.lastIndex) {
                         pagerState.animateScrollToPage(pagerState.currentPage + 1)
                     } else {
-                        pagerState.animateScrollToPage(pagerState.currentPage - 3)
-//                        onComplete()
+                        viewModel.completeOnboarding()
                     }
                 }
             }

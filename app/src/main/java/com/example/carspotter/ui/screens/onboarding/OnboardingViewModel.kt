@@ -25,7 +25,7 @@ class OnboardingViewModel @Inject constructor(
 
     fun completeOnboarding() {
         viewModelScope.launch {
-            userPreferences.setOnboardingCompleted(true)
+            userPreferences.setOnboardingCompleted(false) //TODO: make it true
         }
     }
 }
