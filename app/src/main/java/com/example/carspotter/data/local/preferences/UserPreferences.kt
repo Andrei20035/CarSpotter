@@ -27,4 +27,12 @@ class UserPreferences @Inject constructor(
     suspend fun setOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[ONBOARDING_KEY] = completed }
     }
+
+    /**
+     * Resets the onboarding status to false.
+     * This is useful for testing the onboarding flow without having to uninstall the app.
+     */
+    suspend fun resetOnboardingStatus() {
+        setOnboardingCompleted(false)
+    }
 }

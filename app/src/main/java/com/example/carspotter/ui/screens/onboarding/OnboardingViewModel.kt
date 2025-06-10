@@ -20,4 +20,14 @@ class OnboardingViewModel @Inject constructor(
             userPreferences.setOnboardingCompleted(true)
         }
     }
+
+    /**
+     * Resets the onboarding status to false.
+     * This is useful for testing the onboarding flow without having to uninstall the app.
+     */
+    fun resetOnboardingStatus() {
+        viewModelScope.launch {
+            userPreferences.resetOnboardingStatus()
+        }
+    }
 }

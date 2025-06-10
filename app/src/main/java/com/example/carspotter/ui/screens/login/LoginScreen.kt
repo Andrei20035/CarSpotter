@@ -7,9 +7,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,7 +93,14 @@ fun LoginScreen(
             onSignUp = viewModel::signUp,
             onGoogleSignIn = viewModel::googleSignIn,
             onForgotPassword = viewModel::forgotPassword,
-            onToggleMode = viewModel::toggleLoginMode
+            onToggleMode = viewModel::toggleLoginMode,
+            onResetOnboarding = {
+                viewModel.resetOnboardingStatus {
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            }
         )
     }
 
@@ -188,7 +197,8 @@ private fun LoginCard(
     onSignUp: () -> Unit,
     onGoogleSignIn: () -> Unit,
     onForgotPassword: () -> Unit,
-    onToggleMode: () -> Unit
+    onToggleMode: () -> Unit,
+    onResetOnboarding: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -274,11 +284,24 @@ private fun LoginCard(
                 isLoading = uiState.isLoading
             )
 
-            // Switch between login and sign up
-            AuthModeSwitchText(
-                isLoginMode = uiState.isLoginMode,
-                onToggleMode = onToggleMode
-            )
+            Row {
+                // For testing: Reset onboarding
+                Text(
+                    text = "Reset ",
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable(onClick = onResetOnboarding)
+                )
+
+                // Switch between login and sign up
+                AuthModeSwitchText(
+                    isLoginMode = uiState.isLoginMode,
+                    onToggleMode = onToggleMode
+                )
+
+
+            }
         }
     }
 }

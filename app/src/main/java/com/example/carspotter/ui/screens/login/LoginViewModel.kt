@@ -2,6 +2,7 @@ package com.example.carspotter.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carspotter.data.local.preferences.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,9 @@ import javax.inject.Inject
  * ViewModel for the Login screen that handles authentication logic and state management.
  */
 @HiltViewModel
-class LoginViewModel @Inject constructor() : ViewModel() {
+class LoginViewModel @Inject constructor(
+    private val userPreferences: UserPreferences
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -86,6 +89,19 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
     fun forgotPassword() {
         // TODO: Implement forgot password logic
+    }
+
+    /**
+     * Resets the onboarding status to false and updates the UI state.
+     * This is useful for testing the onboarding flow without having to uninstall the app.
+     * 
+     * @param onComplete Callback to be invoked when the reset is complete
+     */
+    fun resetOnboardingStatus(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            userPreferences.resetOnboardingStatus()
+            onComplete()
+        }
     }
 }
 
