@@ -1,4 +1,4 @@
-package com.example.carspotter.ui.screens.onboarding
+package com.example.carspotter.data.local.preferences
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -10,11 +10,12 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.dataStore by preferencesDataStore(name = "user_preferences")
+
 @Singleton
 class UserPreferences @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val Context.dataStore by preferencesDataStore(name = "user_preferences")
 
     companion object {
         val ONBOARDING_KEY = booleanPreferencesKey("onboarding_completed")

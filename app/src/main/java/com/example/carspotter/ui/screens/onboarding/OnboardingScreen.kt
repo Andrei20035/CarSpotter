@@ -96,10 +96,6 @@ fun OnboardingScreen(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        viewModel.updateCurrentPage(pagerState.currentPage)
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()

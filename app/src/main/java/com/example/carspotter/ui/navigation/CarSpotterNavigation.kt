@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.carspotter.ui.screens.login.LoginScreen
 import com.example.carspotter.ui.screens.onboarding.OnboardingScreen
 
 @Composable
@@ -26,8 +27,9 @@ fun CarSpotterNavigation(navController: NavHostController) {
         }
 
         composable(Screen.Login.route) {
-            // Your login screen here
-            // LoginScreen(navController = navController)
+            LoginScreen(
+                navController = navController
+            )
         }
 
         // Add other screens...
