@@ -3,6 +3,8 @@ package com.example.carspotter.ui.screens.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
+import com.example.carspotter.data.remote.repository.AuthRepository
+import com.example.carspotter.data.remote.repository.BaseRepository.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,12 +13,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * ViewModel for the Login screen that handles authentication logic and state management.
- */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -49,39 +49,96 @@ class LoginViewModel @Inject constructor(
                 password = "",
                 confirmPassword = "",
                 isPasswordVisible = false,
-                isConfirmPasswordVisible = false
+                isConfirmPasswordVisible = false,
+                errorMessage = null
             )
         }
     }
 
     fun login() {
+        val email = uiState.value.email
+        val password = uiState.value.password
+
+        // Basic validation
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Email and password cannot be empty") }
+            return
+        }
+
         viewModelScope.launch {
-            // TODO: Implement actual login logic
-            // For now, just simulate a successful login
-            _uiState.update { it.copy(isLoading = true) }
-            // Simulate network delay
-            kotlinx.coroutines.delay(1000)
-            _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            when (val result = authRepository.login(email, password)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false, 
+                            errorMessage = result.message ?: "Login failed. Please try again."
+                        )
+                    }
+                }
+                ApiResult.Loading -> {
+                    // Already handled by setting isLoading to true
+                }
+            }
         }
     }
 
     fun signUp() {
+        val email = uiState.value.email
+        val password = uiState.value.password
+        val confirmPassword = uiState.value.confirmPassword
+
+        // Basic validation
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Email and password cannot be empty") }
+            return
+        }
+
+        if (password != confirmPassword) {
+            _uiState.update { it.copy(errorMessage = "Passwords do not match") }
+            return
+        }
+
+        if (password.length < 6) {
+            _uiState.update { it.copy(errorMessage = "Password must be at least 6 characters") }
+            return
+        }
+
         viewModelScope.launch {
-            // TODO: Implement actual sign up logic
-            // For now, just simulate a successful sign up
-            _uiState.update { it.copy(isLoading = true) }
-            // Simulate network delay
-            kotlinx.coroutines.delay(1000)
-            _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            // Extract username from email for simplicity
+            val username = email.substringBefore("@")
+
+            when (val result = authRepository.register(email, password, username)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false, 
+                            errorMessage = result.message ?: "Registration failed. Please try again."
+                        )
+                    }
+                }
+                ApiResult.Loading -> {
+                    // Already handled by setting isLoading to true
+                }
+            }
         }
     }
 
     fun googleSignIn() {
         viewModelScope.launch {
-            // TODO: Implement Google Sign In
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            // TODO: Implement actual Google Sign In
             // For now, just simulate a successful sign in
-            _uiState.update { it.copy(isLoading = true) }
-            // Simulate network delay
             kotlinx.coroutines.delay(1000)
             _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
         }
@@ -89,6 +146,15 @@ class LoginViewModel @Inject constructor(
 
     fun forgotPassword() {
         // TODO: Implement forgot password logic
+        // This would typically involve sending a password reset email
+        val email = uiState.value.email
+
+        if (email.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Please enter your email address") }
+            return
+        }
+
+        _uiState.update { it.copy(errorMessage = "Password reset functionality not implemented yet") }
     }
 
     /**
@@ -104,18 +170,3 @@ class LoginViewModel @Inject constructor(
         }
     }
 }
-
-/**
- * Data class representing the UI state for the Login screen.
- */
-data class LoginUiState(
-    val email: String = "",
-    val password: String = "",
-    val confirmPassword: String = "",
-    val isPasswordVisible: Boolean = false,
-    val isConfirmPasswordVisible: Boolean = false,
-    val isLoginMode: Boolean = true,
-    val isLoading: Boolean = false,
-    val isAuthenticated: Boolean = false,
-    val errorMessage: String? = null
-)

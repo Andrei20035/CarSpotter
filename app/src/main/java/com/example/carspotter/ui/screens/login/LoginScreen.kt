@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +50,6 @@ import kotlinx.coroutines.delay
 fun LoginScreen(
     navController: NavController,
     viewModel: LoginViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var shouldShowConfirm by remember { mutableStateOf(false) }
@@ -74,7 +74,7 @@ fun LoginScreen(
     }
 
     // Background and main layout
-    LoginScreenBackground {
+    ScreenBackground {
         // App title and tagline
         LoginHeader()
 
@@ -129,7 +129,7 @@ fun LoginScreen(
  * Background for the login screen with gradient.
  */
 @Composable
-private fun LoginScreenBackground(
+fun ScreenBackground(
     content: @Composable () -> Unit
 ) {
     val gradientColors = listOf(Color(0xFF000000), Color(0xFF080C30))
@@ -184,7 +184,7 @@ private fun LoginHeader() {
  */
 @Composable
 private fun LoginCard(
-    cardHeight: androidx.compose.ui.unit.Dp,
+    cardHeight: Dp,
     uiState: LoginUiState,
     shouldShowConfirm: Boolean,
     shouldShowForgot: Boolean,
@@ -262,6 +262,29 @@ private fun LoginCard(
                 )
             ) {
                 ForgotPasswordText(onForgotPasswordClick = onForgotPassword)
+            }
+
+            // Error message
+            AnimatedVisibility(
+                visible = uiState.errorMessage != null,
+                enter = fadeIn(
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                ),
+                exit = fadeOut(
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                )
+            ) {
+                uiState.errorMessage?.let { errorMessage ->
+                    Text(
+                        text = errorMessage,
+                        color = Color.Red,
+                        fontSize = 14.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
 
             if (!uiState.isLoginMode) {
