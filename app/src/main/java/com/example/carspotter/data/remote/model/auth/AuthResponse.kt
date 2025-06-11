@@ -1,6 +1,5 @@
 package com.example.carspotter.data.remote.model.auth
 
-import com.example.carspotter.data.remote.model.user.User
 import kotlinx.serialization.Serializable
 
 /**

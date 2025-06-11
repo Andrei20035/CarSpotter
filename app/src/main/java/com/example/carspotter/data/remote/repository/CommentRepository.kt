@@ -1,8 +1,6 @@
 package com.example.carspotter.data.remote.repository
 
 import com.example.carspotter.data.remote.api.CommentApi
-import com.example.carspotter.data.remote.model.Comment
-import com.example.carspotter.data.remote.model.CommentRequest
 import com.example.carspotter.data.remote.model.comment.Comment
 import com.example.carspotter.data.remote.model.comment.CommentRequest
 import javax.inject.Inject
