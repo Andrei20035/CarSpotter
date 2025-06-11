@@ -1,4 +1,4 @@
-package com.example.carspotter.data.remote.repository
+package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.remote.api.CarModelApi
 import com.example.carspotter.data.remote.model.car_model.CarModel

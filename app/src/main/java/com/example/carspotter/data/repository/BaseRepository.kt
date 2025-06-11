@@ -1,4 +1,4 @@
-package com.example.carspotter.data.remote.repository
+package com.example.carspotter.data.repository
 
 import retrofit2.Response
 import java.io.IOException

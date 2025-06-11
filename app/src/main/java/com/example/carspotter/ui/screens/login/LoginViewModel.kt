@@ -3,8 +3,8 @@ package com.example.carspotter.ui.screens.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
-import com.example.carspotter.data.remote.repository.AuthRepository
-import com.example.carspotter.data.remote.repository.BaseRepository.ApiResult
+import com.example.carspotter.data.repository.AuthRepository
+import com.example.carspotter.data.repository.BaseRepository.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

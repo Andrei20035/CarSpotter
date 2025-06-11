@@ -1,4 +1,4 @@
-package com.example.carspotter.data.remote.repository
+package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.api.AuthApi
