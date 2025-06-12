@@ -1,9 +1,7 @@
-package com.example.carspotter.data.remote.model.friend_request
+package com.example.carspotter.domain.model
 
-import kotlinx.serialization.Serializable
 import java.time.Instant
 
-@Serializable
 data class FriendRequest(
     val senderId: Int,
     val receiverId: Int,

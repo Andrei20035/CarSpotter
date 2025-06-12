@@ -1,5 +1,6 @@
 package com.example.carspotter.data.repository
 
+import com.example.carspotter.utils.ApiResult
 import retrofit2.Response
 import java.io.IOException
 
@@ -8,14 +9,6 @@ import java.io.IOException
  */
 abstract class BaseRepository {
 
-    /**
-     * Sealed class representing the result of an API call.
-     */
-    sealed class ApiResult<out T> {
-        data class Success<out T>(val data: T) : ApiResult<T>()
-        data class Error(val exception: Exception, val message: String? = null) : ApiResult<Nothing>()
-        object Loading : ApiResult<Nothing>()
-    }
 
     /**
      * Executes a safe API call and returns the result wrapped in ApiResult.

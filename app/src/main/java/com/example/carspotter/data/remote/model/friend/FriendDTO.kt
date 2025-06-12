@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 @Serializable
-data class Friend(
+data class FriendDTO(
     val userId: Int,
     val friendId: Int,
     val createdAt: Instant? = null,

@@ -1,7 +1,7 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.user.User
-import com.example.carspotter.data.remote.model.user_car.UserCar
+import com.example.carspotter.data.remote.model.user.UserDTO
+import com.example.carspotter.data.remote.model.user_car.UserCarDTO
 import com.example.carspotter.data.remote.model.user_car.UserCarRequest
 import com.example.carspotter.data.remote.model.user_car.UserCarUpdateRequest
 import retrofit2.Response
@@ -22,17 +22,17 @@ interface UserCarApi {
     @GET("/user-cars/{userCarId}")
     suspend fun getUserCarById(
         @Path("userCarId") userCarId: Int
-    ): Response<UserCar>
+    ): Response<UserCarDTO>
 
     @GET("/user-cars/by-user/{userId}")
     suspend fun getUserCarByUserId(
         @Path("userId") userId: Int
-    ): Response<UserCar>
+    ): Response<UserCarDTO>
 
     @GET("/user-cars/{userCarId}/user")
     suspend fun getUserByUserCarId(
         @Path("userCarId") userCarId: Int
-    ): Response<User>
+    ): Response<UserDTO>
 
     @PUT("/user-cars")
     suspend fun updateUserCar(
@@ -43,5 +43,5 @@ interface UserCarApi {
     suspend fun deleteUserCar(): Response<Unit>
 
     @GET("/user-cars")
-    suspend fun getAllUserCars(): Response<List<UserCar>>
+    suspend fun getAllUserCars(): Response<List<UserCarDTO>>
 }

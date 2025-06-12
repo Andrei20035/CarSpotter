@@ -1,6 +1,6 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.comment.Comment
+import com.example.carspotter.data.remote.model.comment.CommentDTO
 import com.example.carspotter.data.remote.model.comment.CommentRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -14,7 +14,7 @@ interface CommentApi {
     @GET("/comments/{postId}")
     suspend fun getCommentsForPost(
         @Path("postId") postId: Int
-    ): Response<List<Comment>>
+    ): Response<List<CommentDTO>>
 
     @POST("/comments")
     suspend fun addComment(

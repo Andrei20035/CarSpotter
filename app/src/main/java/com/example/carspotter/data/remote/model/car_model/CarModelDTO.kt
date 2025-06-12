@@ -3,7 +3,7 @@ package com.example.carspotter.data.remote.model.car_model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CarModel(
+data class CarModelDTO(
     val id: Int = 0,
     val brand: String,
     val model: String,

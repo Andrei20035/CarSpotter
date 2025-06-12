@@ -5,7 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 @Serializable
-data class User(
+data class UserDTO(
     val id: Int = 0,
     val firstName: String,
     val lastName: String,

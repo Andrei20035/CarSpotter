@@ -1,9 +1,7 @@
-package com.example.carspotter.data.remote.model.comment
+package com.example.carspotter.domain.model
 
-import kotlinx.serialization.Serializable
 import java.time.Instant
 
-@Serializable
 data class Comment(
     val id: Int = 0,
     val userId: Int,

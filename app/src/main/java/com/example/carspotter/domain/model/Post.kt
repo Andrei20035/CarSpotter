@@ -1,9 +1,7 @@
-package com.example.carspotter.data.remote.model.post
+package com.example.carspotter.domain.model
 
-import kotlinx.serialization.Serializable
 import java.time.Instant
 
-@Serializable
 data class Post(
     val id: Int = 0,
     val userId: Int,

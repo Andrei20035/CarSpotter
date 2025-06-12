@@ -1,14 +1,15 @@
-package com.example.carspotter.data.remote.model.user_car
+package com.example.carspotter.data.remote.model.post
 
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
 @Serializable
-data class UserCar(
+data class PostDTO(
     val id: Int = 0,
     val userId: Int,
     val carModelId: Int,
-    val imagePath: String? = null,
+    val imagePath: String,
+    val description: String? = null,
     val createdAt: Instant? = null,
-    val updatedAt: Instant? = null
+    val updatedAt: Instant? = null,
 )
