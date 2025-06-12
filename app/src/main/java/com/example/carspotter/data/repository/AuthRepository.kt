@@ -30,7 +30,7 @@ class AuthRepository @Inject constructor(
         return result
     }
 
-    override suspend fun register(email: String, password: String?, provider: AuthProvider): ApiResult<AuthResponse> {
+    override suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse> {
         val registerRequest = RegisterRequest(email, password, provider)
         val result = safeApiCall { authApi.register(registerRequest) }
         

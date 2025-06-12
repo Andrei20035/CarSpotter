@@ -224,7 +224,7 @@ private fun LoginCard(
 
             // Password field
             PasswordField(
-                password = uiState.password,
+                password = uiState.password ?: "",
                 onPasswordChange = onPasswordChange,
                 isPasswordVisible = uiState.isPasswordVisible,
                 onTogglePasswordVisibility = onTogglePasswordVisibility,
