@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.repository.AuthRepository
+import com.example.carspotter.domain.model.AuthProvider
 import com.example.carspotter.utils.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,10 +62,27 @@ class LoginViewModel @Inject constructor(
         val googleId = uiState.value.googleId
         val provider = uiState.value.provider
 
-        // Basic validation
         if (email.isBlank() || password?.isBlank() == true) {
-            _uiState.update { it.copy(errorMessage = "Email and password cannot be empty") }
+            setError("Email and password cannot be empty")
             return
+        } else if(!isValidEmail(email)) {
+            setError("Email is invalid")
+            return
+        } else if(!isValidPassword(password)) {
+            setError("Password should contain at least 10 characters, 1 uppercase and 1 special character")
+            return
+        }
+
+        when(provider) {
+            AuthProvider.GOOGLE -> {
+                if(googleId.isNullOrBlank()) {
+                    _uiState.update { it.copy( errorMessage = "An error occurred when fetching googleId") }
+                    return
+                }
+            }
+            AuthProvider.REGULAR -> {
+                return
+            }
         }
 
         viewModelScope.launch {
@@ -87,6 +105,10 @@ class LoginViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun setError(message: String) {
+        _uiState.update { it.copy(errorMessage = message, isLoading = false) }
     }
 
     fun signUp() {
@@ -136,7 +158,7 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun googleSignIn() {
+    fun googleSignIn(idToken: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
@@ -171,5 +193,18 @@ class LoginViewModel @Inject constructor(
             userPreferences.resetOnboardingStatus()
             onComplete()
         }
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        val emailRegex = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+        return emailRegex.matches(email)
+    }
+
+    private fun isValidPassword(password: String?): Boolean {
+        val hasMinLength = password?.length!! >= 10
+        val hasUpperCase = password.any { it.isUpperCase() }
+        val hasSpecialChar = password.any { !it.isLetterOrDigit() }
+
+        return hasMinLength && hasUpperCase == true && hasSpecialChar == true
     }
 }

@@ -18,6 +18,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${property("GOOGLE_WEB_CLIENT_ID")}\""
+        )
     }
 
     buildTypes {
@@ -38,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -57,6 +63,7 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.datastore.preferences)
     implementation(libs.compose.foundation)
+    implementation(libs.play.services.auth)
 
     // Network
     implementation(libs.retrofit)
