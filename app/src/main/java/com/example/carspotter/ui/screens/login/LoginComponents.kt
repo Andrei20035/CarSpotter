@@ -79,7 +79,7 @@ fun EmailField(
  */
 @Composable
 fun PasswordField(
-    password: String,
+    password: String?,
     onPasswordChange: (String) -> Unit,
     isPasswordVisible: Boolean,
     onTogglePasswordVisibility: () -> Unit,
@@ -102,7 +102,7 @@ fun PasswordField(
         )
 
         OutlinedTextField(
-            value = password,
+            value = password ?: "",
             onValueChange = onPasswordChange,
             placeholder = {
                 Text(

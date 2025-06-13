@@ -1,5 +1,6 @@
 package com.example.carspotter.ui.screens.login
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.carspotter.BuildConfig
+import com.example.carspotter.domain.model.AuthProvider
 import com.example.carspotter.ui.components.GradientText
 import com.example.carspotter.ui.navigation.Screen
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -79,14 +81,13 @@ fun LoginScreen(
                     is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
                     is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
                     is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
-                    is LoginAction.Login -> viewModel.login()
-                    is LoginAction.SignUp -> viewModel.signUp()
-                    is LoginAction.GoogleSignIn -> {
-                        if (action.idToken != null) {
-                            viewModel.googleSignIn(action.idToken)
-                        } else {
-                            viewModel.setError("Google Sign-In failed")
-                        }
+                    is LoginAction.Login -> {
+                        viewModel.setProviderAndToken(action.googleId, action.provider)
+                        viewModel.login(action.googleId)
+                    }
+                    is LoginAction.SignUp -> {
+                        viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
+                        viewModel.signUp()
                     }
                     is LoginAction.ForgotPassword -> viewModel.forgotPassword()
                     is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
@@ -301,9 +302,9 @@ private fun LoginActions(
         text = if (uiState.isLoginMode) "Log In" else "Sign Up",
         onClick = {
             if (uiState.isLoginMode) {
-                onAction(LoginAction.Login)
+                onAction(LoginAction.Login(null, AuthProvider.REGULAR))
             } else {
-                onAction(LoginAction.SignUp)
+                onAction(LoginAction.SignUp(null, AuthProvider.REGULAR))
             }
         },
         isLoading = uiState.isLoading
@@ -312,7 +313,11 @@ private fun LoginActions(
     GoogleSignInHandler(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
-        onGoogleSignIn = { idToken -> onAction(LoginAction.GoogleSignIn(idToken)) }
+        onGoogleSignIn = {
+            idToken ->
+            {
+                println("Token received in GoogleSignInHandler: $idToken")
+                onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE)) } }
     )
 }
 
@@ -353,6 +358,7 @@ private fun GoogleSignInHandler(
         try {
             val account = task.getResult(ApiException::class.java)
             val idToken = account.idToken
+            Log.d("GOOGLE_SIGN_IN", "Google id token: $idToken")
             onGoogleSignIn(idToken)
         } catch (e: ApiException) {
             onGoogleSignIn(null)
