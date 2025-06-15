@@ -1,6 +1,7 @@
 package com.example.carspotter.ui.screens.login
 
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -270,21 +270,28 @@ private fun LoginForm(
         )
     }
 
-    AnimatedVisibility(
-        visible = uiState.errorMessage != null,
-        enter = fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
-        exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
-    ) {
-        uiState.errorMessage?.let { errorMessage ->
-            Text(
-                text = errorMessage,
-                color = Color.Red,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                textAlign = TextAlign.Center
-            )
+    val context = LocalContext.current
+
+//    AnimatedVisibility(
+//        visible = uiState.errorMessage != null,
+//        enter = fadeIn(animationSpec = tween(200, easing = FastOutSlowInEasing)),
+//        exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
+//    ) {
+//        uiState.errorMessage?.let { errorMessage ->
+//            Text(
+//                text = errorMessage,
+//                color = Color.Red,
+//                fontSize = 14.sp,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(top = 8.dp),
+//                textAlign = TextAlign.Center
+//            )
+//        }
+//    }
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -317,7 +324,9 @@ private fun LoginActions(
             idToken ->
             {
                 println("Token received in GoogleSignInHandler: $idToken")
-                onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE)) } }
+                onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
+            }
+        }
     )
 }
 
@@ -358,7 +367,6 @@ private fun GoogleSignInHandler(
         try {
             val account = task.getResult(ApiException::class.java)
             val idToken = account.idToken
-            Log.d("GOOGLE_SIGN_IN", "Google id token: $idToken")
             onGoogleSignIn(idToken)
         } catch (e: ApiException) {
             onGoogleSignIn(null)
@@ -366,9 +374,10 @@ private fun GoogleSignInHandler(
     }
 
     val gso = remember {
+        Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
-            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .requestIdToken(BuildConfig.WEB_CLIENT_ID)
             .build()
     }
 

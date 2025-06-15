@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     kotlin("kapt")
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -20,8 +21,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField(
             "String",
-            "GOOGLE_WEB_CLIENT_ID",
-            "\"${property("GOOGLE_WEB_CLIENT_ID")}\""
+            "WEB_CLIENT_ID",
+            "\"${property("WEB_CLIENT_ID")}\""
         )
     }
 
@@ -64,6 +65,8 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.compose.foundation)
     implementation(libs.play.services.auth)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
 
     // Network
     implementation(libs.retrofit)

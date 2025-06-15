@@ -72,9 +72,6 @@ class LoginViewModel @Inject constructor(
         val tokenToUse = googleId ?: uiState.value.googleId
         val provider = uiState.value.provider
 
-
-
-
         when (provider) {
             AuthProvider.REGULAR -> {
                 if (!isValidEmail(email)) {
@@ -106,8 +103,8 @@ class LoginViewModel @Inject constructor(
 
             when (val result = authRepository.login(
                 email = email,
-                password = password,           // nullable; backend will ignore if not needed
-                googleId = googleId,           // nullable; backend will ignore if not needed
+                password = password,
+                googleId = googleId,
                 provider = provider
             )) {
                 is ApiResult.Success -> _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
