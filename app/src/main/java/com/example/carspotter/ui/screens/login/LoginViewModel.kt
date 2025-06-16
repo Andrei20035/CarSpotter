@@ -1,11 +1,13 @@
 package com.example.carspotter.ui.screens.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.repository.AuthRepository
 import com.example.carspotter.domain.model.AuthProvider
 import com.example.carspotter.utils.ApiResult
+import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,7 +49,7 @@ class LoginViewModel @Inject constructor(
     fun setProviderAndToken(googleId: String?, provider: AuthProvider) {
         _uiState.update {
             it.copy(
-                provider = AuthProvider.GOOGLE,
+                provider = provider,
                 googleId = googleId
             )
         }
@@ -67,10 +69,13 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login(googleId: String? = null) {
+        Log.d("LOGIN_DEBUG", "login() function called")
         val email = uiState.value.email
         val password = uiState.value.password
         val tokenToUse = googleId ?: uiState.value.googleId
         val provider = uiState.value.provider
+
+        Log.d("UI_STATE", Gson().toJson(uiState.value))
 
         when (provider) {
             AuthProvider.REGULAR -> {
@@ -83,7 +88,7 @@ class LoginViewModel @Inject constructor(
                     return
                 }
                 if (!isValidPassword(password)) {
-                    setError("Password must contain at least 10 characters, 1 uppercase, and 1 special character")
+                    setError("Password needs 10+ chars, 1 uppercase & special char")
                     return
                 }
             }
@@ -161,11 +166,11 @@ class LoginViewModel @Inject constructor(
         val email = uiState.value.email
 
         if (email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Please enter your email address") }
+            setError(message = "Please enter your email address")
             return
         }
 
-        _uiState.update { it.copy(errorMessage = "Password reset functionality not implemented yet") }
+        setError(message = "Password reset functionality not implemented yet")
     }
 
     /**
@@ -209,7 +214,7 @@ class LoginViewModel @Inject constructor(
                 false
             }
             !isValidPassword(password) -> {
-                setError("Password should contain at least 10 characters, 1 uppercase and 1 special character")
+                setError("Password needs 10+ chars, 1 uppercase & special char")
                 false
             }
             else -> true

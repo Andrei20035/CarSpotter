@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -83,12 +84,18 @@ fun LoginScreen(
                     is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
                     is LoginAction.Login -> {
                         viewModel.setProviderAndToken(action.googleId, action.provider)
+                        Log.d(
+                            "GOOGLE_ID and PROVIDER",
+                            "googleId: ${uiState.googleId}, provider: ${uiState.provider}"
+                        )
                         viewModel.login(action.googleId)
                     }
+
                     is LoginAction.SignUp -> {
                         viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
                         viewModel.signUp()
                     }
+
                     is LoginAction.ForgotPassword -> viewModel.forgotPassword()
                     is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
                     is LoginAction.ResetOnboarding -> {
@@ -161,7 +168,7 @@ private fun LoginCard(
     var shouldShowForgot by remember { mutableStateOf(false) }
 
     val cardHeight by animateDpAsState(
-        targetValue = if(uiState.isLoginMode) 480.dp else 620.dp,
+        targetValue = if (uiState.isLoginMode) 480.dp else 620.dp,
         animationSpec = tween(
             durationMillis = 300,
             easing = FastOutSlowInEasing
@@ -320,12 +327,9 @@ private fun LoginActions(
     GoogleSignInHandler(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
-        onGoogleSignIn = {
-            idToken ->
-            {
-                println("Token received in GoogleSignInHandler: $idToken")
-                onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
-            }
+        onGoogleSignIn = { idToken ->
+            Log.d("TOKEN_ID", "Token received in GoogleSignInHandler: $idToken")
+            onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
         }
     )
 }
@@ -368,13 +372,14 @@ private fun GoogleSignInHandler(
             val account = task.getResult(ApiException::class.java)
             val idToken = account.idToken
             onGoogleSignIn(idToken)
+            Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
+            Log.d("GOOGLE_TOKEN_ID", "idToken: $idToken")
         } catch (e: ApiException) {
             onGoogleSignIn(null)
         }
     }
 
     val gso = remember {
-        Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestIdToken(BuildConfig.WEB_CLIENT_ID)
@@ -388,8 +393,10 @@ private fun GoogleSignInHandler(
     GoogleSignInButton(
         text = text,
         onClick = {
-            val signInIntent = googleSignInClient.signInIntent
-            launcher.launch(signInIntent)
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                launcher.launch(signInIntent)
+            }
         },
         isLoading = isLoading
     )
