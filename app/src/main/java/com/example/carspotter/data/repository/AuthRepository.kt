@@ -17,43 +17,43 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val authApi: AuthApi,
     private val userPreferences: UserPreferences
-) : BaseRepository(), IAuthRepository {
+) : IAuthRepository {
 
     override suspend fun login(email: String, password: String?, googleId: String?, provider: AuthProvider): ApiResult<AuthResponse> {
         val loginRequest = LoginRequest(email, password, googleId, provider)
-        val result = safeApiCall { authApi.login(loginRequest) }
-        
+        val result = authApi.login(loginRequest)
+
         if (result is ApiResult.Success) {
             saveAuthData(result.data)
         }
-        
+
         return result
     }
 
     override suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse> {
         val registerRequest = RegisterRequest(email, password, provider)
-        val result = safeApiCall { authApi.register(registerRequest) }
-        
+        val result = authApi.register(registerRequest)
+
         if (result is ApiResult.Success) {
             saveAuthData(result.data)
         }
-        
+
         return result
     }
 
     override suspend fun deleteAccount(): ApiResult<Unit> {
-        val result = safeApiCall { authApi.deleteAccount() }
-        
+        val result = authApi.deleteAccount()
+
         if (result is ApiResult.Success) {
             userPreferences.clearAuthData()
         }
-        
+
         return result
     }
 
     override suspend fun updatePassword(currentPassword: String): ApiResult<Unit> {
         val updatePasswordRequest = UpdatePasswordRequest(currentPassword)
-        return safeApiCall { authApi.updatePassword(updatePasswordRequest) }
+        return authApi.updatePassword(updatePasswordRequest)
     }
 
     override suspend fun logout() {

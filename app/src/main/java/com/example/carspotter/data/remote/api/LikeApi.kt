@@ -9,17 +9,17 @@ import retrofit2.http.Path
 
 interface LikeApi {
 
-    @POST("/likes/{postId}")
+    @POST("likes/{postId}")
     suspend fun likePost(
         @Path("postId") postId: Int
     ): Response<Unit>
 
-    @DELETE("/likes/{postId}")
+    @DELETE("likes/{postId}")
     suspend fun unlikePost(
         @Path("postId") postId: Int
     ): Response<Unit>
 
-    @GET("/likes/posts/{postId}")
+    @GET("likes/posts/{postId}")
     suspend fun getLikesForPost(
         @Path("postId") postId: Int
     ): Response<List<UserDTO>>

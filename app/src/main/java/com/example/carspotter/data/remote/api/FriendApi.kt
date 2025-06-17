@@ -9,19 +9,19 @@ import retrofit2.http.Path
 
 interface FriendApi {
 
-    @GET("/friends/admin")
+    @GET("friends/admin")
     suspend fun getAllFriendsAdmin(): Response<List<FriendDTO>>
 
-    @POST("/friends/{friendId}")
+    @POST("friends/{friendId}")
     suspend fun addFriend(
         @Path("friendId") friendId: Int
     ): Response<Unit>
 
-    @DELETE("/friends/{friendId}")
+    @DELETE("friends/{friendId}")
     suspend fun deleteFriend(
         @Path("friendId") friendId: Int
     ): Response<Unit>
 
-    @GET("/friends")
+    @GET("friends")
     suspend fun getAllFriends(): Response<List<FriendDTO>>
 }

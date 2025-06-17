@@ -1,5 +1,6 @@
 package com.example.carspotter.di
 
+import com.example.carspotter.BuildConfig
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.api.AuthApi
 import com.example.carspotter.data.remote.api.CarModelApi
@@ -10,6 +11,8 @@ import com.example.carspotter.data.remote.api.LikeApi
 import com.example.carspotter.data.remote.api.PostApi
 import com.example.carspotter.data.remote.api.UserApi
 import com.example.carspotter.data.remote.api.UserCarApi
+import com.example.carspotter.utils.ApiResultCallAdapterFactory
+import com.example.carspotter.utils.NetworkConnectivityInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -30,7 +33,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://api.carspotter.com"
+    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
 
     @Provides
     @Singleton
@@ -59,7 +62,11 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE  // no logs in production
+            }
         }
     }
 
@@ -67,9 +74,11 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: Interceptor,
-        loggingInterceptor: HttpLoggingInterceptor
+        loggingInterceptor: HttpLoggingInterceptor,
+        networkConnectivityInterceptor: NetworkConnectivityInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor(networkConnectivityInterceptor) // Add this first to check connectivity before other interceptors
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -85,6 +94,7 @@ object NetworkModule {
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
+            .addCallAdapterFactory(ApiResultCallAdapterFactory())
             .build()
     }
 

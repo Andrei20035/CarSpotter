@@ -14,27 +14,27 @@ import retrofit2.http.Path
 
 interface UserApi {
 
-    @GET("/user/me")
+    @GET("user/me")
     suspend fun getCurrentUser(): Response<UserDTO>
 
-    @GET("/user/all")
+    @GET("user/all")
     suspend fun getAllUsers(): Response<List<UserDTO>>
 
-    @GET("/user/by-username/{username}")
+    @GET("user/by-username/{username}")
     suspend fun getUsersByUsername(
         @Path("username") username: String
     ): Response<List<UserDTO>>
 
-    @POST("/user")
+    @POST("user")
     suspend fun createUser(
         @Body createUserRequest: CreateUserRequest
     ): Response<CreateUserResponse>
 
-    @PUT("/user/profile-picture")
+    @PUT("user/profile-picture")
     suspend fun updateProfilePicture(
         @Body updateProfilePictureRequest: UpdateProfilePictureRequest
     ): Response<Unit>
 
-    @DELETE("/user/me")
+    @DELETE("user/me")
     suspend fun deleteCurrentUser(): Response<Unit>
 }

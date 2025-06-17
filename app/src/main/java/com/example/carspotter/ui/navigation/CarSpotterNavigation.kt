@@ -39,6 +39,12 @@ fun CarSpotterNavigation(navController: NavHostController) {
             )
         }
 
+        composable(Screen.Home.route) {
+            ProfileSetup(
+                navController = navController
+            )
+        }
+
         // Add other screens...
     }
 }

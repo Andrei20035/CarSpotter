@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -327,8 +326,9 @@ private fun LoginActions(
     GoogleSignInHandler(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
-        onGoogleSignIn = { idToken ->
+        onGoogleSignIn = { idToken, email ->
             Log.d("TOKEN_ID", "Token received in GoogleSignInHandler: $idToken")
+            onAction(LoginAction.EmailChanged(email))
             onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
         }
     )
@@ -360,24 +360,9 @@ private fun LoginFooter(
 private fun GoogleSignInHandler(
     text: String,
     isLoading: Boolean,
-    onGoogleSignIn: (String?) -> Unit
+    onGoogleSignIn: (String?, email: String?) -> Unit
 ) {
     val context = LocalContext.current
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val idToken = account.idToken
-            onGoogleSignIn(idToken)
-            Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
-            Log.d("GOOGLE_TOKEN_ID", "idToken: $idToken")
-        } catch (e: ApiException) {
-            onGoogleSignIn(null)
-        }
-    }
 
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -390,13 +375,30 @@ private fun GoogleSignInHandler(
         GoogleSignIn.getClient(context, gso)
     }
 
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account.idToken
+            val email = account.email
+            onGoogleSignIn(idToken, email)
+            Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
+            Log.d("GOOGLE_TOKEN_ID", "idToken: $idToken")
+        } catch (e: ApiException) {
+            Log.e("GOOGLE_SIGN_IN", "Sign-in failed", e)
+            onGoogleSignIn(null, null)
+        }
+    }
+
+
+
     GoogleSignInButton(
         text = text,
         onClick = {
-            googleSignInClient.signOut().addOnCompleteListener {
-                val signInIntent = googleSignInClient.signInIntent
-                launcher.launch(signInIntent)
-            }
+            val signInIntent = googleSignInClient.signInIntent
+            launcher.launch(signInIntent)
         },
         isLoading = isLoading
     )

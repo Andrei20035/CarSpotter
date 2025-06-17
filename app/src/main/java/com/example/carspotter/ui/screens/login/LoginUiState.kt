@@ -3,7 +3,7 @@ package com.example.carspotter.ui.screens.login
 import com.example.carspotter.domain.model.AuthProvider
 
 data class LoginUiState(
-    val email: String = "",
+    val email: String? = null,
     val password: String? = null,
     val googleId: String? = null,
     val provider: AuthProvider = AuthProvider.REGULAR,

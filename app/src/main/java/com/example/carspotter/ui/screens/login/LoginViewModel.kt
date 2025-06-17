@@ -26,7 +26,7 @@ class LoginViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    fun updateEmail(email: String) {
+    fun updateEmail(email: String?) {
         _uiState.update { it.copy(email = email) }
     }
 
@@ -56,7 +56,7 @@ class LoginViewModel @Inject constructor(
     }
 
     fun toggleLoginMode() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 isLoginMode = !it.isLoginMode,
                 password = null,
@@ -70,7 +70,7 @@ class LoginViewModel @Inject constructor(
 
     fun login(googleId: String? = null) {
         Log.d("LOGIN_DEBUG", "login() function called")
-        val email = uiState.value.email
+        val email = uiState.value.email ?: return
         val password = uiState.value.password
         val tokenToUse = googleId ?: uiState.value.googleId
         val provider = uiState.value.provider
@@ -113,8 +113,11 @@ class LoginViewModel @Inject constructor(
                 provider = provider
             )) {
                 is ApiResult.Success -> _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
-                is ApiResult.Error -> setError(result.message ?: "Login failed. Please try again.")
-                ApiResult.Loading -> {
+                is ApiResult.Error -> {
+                    Log.e("LoginError", "Login failed: ${result.message}")
+                    setError("Login failed. Please try again.")
+                }
+                is ApiResult.Loading -> {
                     // already handled
                 }
             }
@@ -122,14 +125,13 @@ class LoginViewModel @Inject constructor(
     }
 
 
-
     fun signUp() {
-        val email = uiState.value.email
+        val email = uiState.value.email ?: return
         val password = uiState.value.password
         val confirmPassword = uiState.value.confirmPassword
         val authProvider = uiState.value.provider
 
-        if(!validateInputs(email, password, confirmPassword)) return
+        if (!validateInputs(email, password, confirmPassword)) return
 
         val nonNullPassword = password!!
         val nonNullConfirmPassword = confirmPassword!!
@@ -141,9 +143,11 @@ class LoginViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                 }
+
                 is ApiResult.Error -> {
                     setError("Registration failed. Please try again.")
                 }
+
                 ApiResult.Loading -> {
                     // Already handled by setting isLoading to true
                 }
@@ -163,7 +167,7 @@ class LoginViewModel @Inject constructor(
     fun forgotPassword() {
         // TODO: Implement forgot password logic
         // This would typically involve sending a password reset email
-        val email = uiState.value.email
+        val email = uiState.value.email ?: return
 
         if (email.isBlank()) {
             setError(message = "Please enter your email address")
@@ -176,7 +180,7 @@ class LoginViewModel @Inject constructor(
     /**
      * Resets the onboarding status to false and updates the UI state.
      * This is useful for testing the onboarding flow without having to uninstall the app.
-     * 
+     *
      * @param onComplete Callback to be invoked when the reset is complete
      */
     fun resetOnboardingStatus(onComplete: () -> Unit) {
@@ -205,18 +209,22 @@ class LoginViewModel @Inject constructor(
                 setError("Email and password cannot be empty")
                 false
             }
+
             !isValidEmail(email) -> {
                 setError("Email is invalid")
                 false
             }
+
             confirmPassword != null && password != confirmPassword -> {
                 setError("Passwords do not match")
                 false
             }
+
             !isValidPassword(password) -> {
                 setError("Password needs 10+ chars, 1 uppercase & special char")
                 false
             }
+
             else -> true
         }
     }

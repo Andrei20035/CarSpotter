@@ -9,31 +9,31 @@ import java.util.TimeZone
 
 interface PostApi {
 
-    @POST("/posts")
+    @POST("posts")
     suspend fun createPost(
         @Body postRequest: PostRequest
     ): Response<Unit>
 
-    @GET("/posts/{postId}")
+    @GET("posts/{postId}")
     suspend fun getPostById(
         @Path("postId") postId: Int
     ): Response<PostDTO>
 
-    @GET("/posts")
+    @GET("posts")
     suspend fun getAllPosts(): Response<List<PostDTO>>
 
-    @GET("/posts/current-day")
+    @GET("posts/current-day")
     suspend fun getCurrentDayPostsForUser(
         @Header("Time-Zone") timeZone: String = TimeZone.getDefault().id
     ): Response<List<PostDTO>>
 
-    @PUT("/posts/{postId}")
+    @PUT("posts/{postId}")
     suspend fun editPost(
         @Path("postId") postId: Int,
         @Body request: PostEditRequest
     ): Response<Unit>
 
-    @DELETE("/posts/{postId}")
+    @DELETE("posts/{postId}")
     suspend fun deletePost(
         @Path("postId") postId: Int
     ): Response<Unit>

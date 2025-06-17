@@ -6,10 +6,10 @@ import retrofit2.http.GET
 
 interface CarModelApi {
 
-    @GET("/car-models")
+    @GET("car-models")
     suspend fun getAllCarModels(): Response<List<CarModelDTO>>
 
-    @GET("/car-models/{modelId}")
+    @GET("car-models/{modelId}")
     suspend fun getCarModelById(
         @retrofit2.http.Path("modelId") modelId: Int
     ): Response<CarModelDTO>

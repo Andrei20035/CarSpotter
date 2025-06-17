@@ -14,34 +14,34 @@ import retrofit2.http.Path
 
 interface UserCarApi {
 
-    @POST("/user-cars")
+    @POST("user-cars")
     suspend fun createUserCar(
         @Body userCarRequest: UserCarRequest
     ): Response<Unit>
 
-    @GET("/user-cars/{userCarId}")
+    @GET("user-cars/{userCarId}")
     suspend fun getUserCarById(
         @Path("userCarId") userCarId: Int
     ): Response<UserCarDTO>
 
-    @GET("/user-cars/by-user/{userId}")
+    @GET("user-cars/by-user/{userId}")
     suspend fun getUserCarByUserId(
         @Path("userId") userId: Int
     ): Response<UserCarDTO>
 
-    @GET("/user-cars/{userCarId}/user")
+    @GET("user-cars/{userCarId}/user")
     suspend fun getUserByUserCarId(
         @Path("userCarId") userCarId: Int
     ): Response<UserDTO>
 
-    @PUT("/user-cars")
+    @PUT("user-cars")
     suspend fun updateUserCar(
         @Body userCarUpdateRequest: UserCarUpdateRequest
     ): Response<Unit>
 
-    @DELETE("/user-cars")
+    @DELETE("user-cars")
     suspend fun deleteUserCar(): Response<Unit>
 
-    @GET("/user-cars")
+    @GET("user-cars")
     suspend fun getAllUserCars(): Response<List<UserCarDTO>>
 }

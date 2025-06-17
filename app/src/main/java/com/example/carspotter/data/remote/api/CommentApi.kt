@@ -11,17 +11,17 @@ import retrofit2.http.Path
 
 interface CommentApi {
 
-    @GET("/comments/{postId}")
+    @GET("comments/{postId}")
     suspend fun getCommentsForPost(
         @Path("postId") postId: Int
     ): Response<List<CommentDTO>>
 
-    @POST("/comments")
+    @POST("comments")
     suspend fun addComment(
         @Body commentRequest: CommentRequest
     ): Response<Unit>
 
-    @DELETE("/comments/{commentId}")
+    @DELETE("comments/{commentId}")
     suspend fun deleteComment(
         @Path("commentId") commentId: Int
     ): Response<Unit>

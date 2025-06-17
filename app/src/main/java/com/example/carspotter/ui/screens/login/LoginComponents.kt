@@ -27,7 +27,7 @@ import com.example.carspotter.R
  */
 @Composable
 fun EmailField(
-    email: String,
+    email: String?,
     onEmailChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Next
@@ -43,7 +43,7 @@ fun EmailField(
     )
 
     OutlinedTextField(
-        value = email,
+        value = email ?: "",
         onValueChange = onEmailChange,
         placeholder = {
             Text(
@@ -188,7 +188,9 @@ fun PrimaryActionButton(
             .padding(bottom = 16.dp),
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFF0AB25)
+            containerColor = Color(0xFFF0AB25),
+            disabledContainerColor = Color(0xFFF0AB25).copy(alpha = 0.7f),
+            disabledContentColor = Color.Black.copy(alpha = 0.7f)
         ),
         enabled = !isLoading
     ) {
@@ -219,7 +221,9 @@ fun GoogleSignInButton(
             .padding(bottom = 16.dp),
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Gray.copy(alpha = 0.2f)
+            containerColor = Color.Gray.copy(alpha = 0.2f),
+            disabledContainerColor = Color.Gray.copy(alpha = 0.7f),
+            disabledContentColor = Color.Black.copy(alpha = 0.7f)
         ),
         border = BorderStroke(0.dp, Color.Transparent),
         enabled = !isLoading
