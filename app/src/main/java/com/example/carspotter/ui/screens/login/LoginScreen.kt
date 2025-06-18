@@ -88,7 +88,7 @@ fun LoginScreen(
                             viewModel.setProviderAndToken(action.googleId, action.provider)
                             Log.d(
                                 "GOOGLE_ID and PROVIDER",
-                                "googleId: ${uiState.googleId}, provider: ${uiState.provider}"
+                                "googleId: ${uiState.googleIdToken}, provider: ${uiState.provider}"
                             )
                             viewModel.login(action.googleId)
                         }
