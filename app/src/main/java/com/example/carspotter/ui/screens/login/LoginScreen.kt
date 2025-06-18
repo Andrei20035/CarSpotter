@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,43 +72,58 @@ fun LoginScreen(
         }
     }
 
-    ScreenBackground {
-        LoginHeader()
-        LoginCard(
-            uiState = uiState,
-            onAction = { action ->
-                when (action) {
-                    is LoginAction.EmailChanged -> viewModel.updateEmail(action.email)
-                    is LoginAction.PasswordChanged -> viewModel.updatePassword(action.password)
-                    is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
-                    is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
-                    is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
-                    is LoginAction.Login -> {
-                        viewModel.setProviderAndToken(action.googleId, action.provider)
-                        Log.d(
-                            "GOOGLE_ID and PROVIDER",
-                            "googleId: ${uiState.googleId}, provider: ${uiState.provider}"
-                        )
-                        viewModel.login(action.googleId)
-                    }
+    Box(modifier= Modifier.fillMaxSize()) {
+        ScreenBackground {
+            LoginHeader()
+            LoginCard(
+                uiState = uiState,
+                onAction = { action ->
+                    when (action) {
+                        is LoginAction.EmailChanged -> viewModel.updateEmail(action.email)
+                        is LoginAction.PasswordChanged -> viewModel.updatePassword(action.password)
+                        is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
+                        is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
+                        is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
+                        is LoginAction.Login -> {
+                            viewModel.setProviderAndToken(action.googleId, action.provider)
+                            Log.d(
+                                "GOOGLE_ID and PROVIDER",
+                                "googleId: ${uiState.googleId}, provider: ${uiState.provider}"
+                            )
+                            viewModel.login(action.googleId)
+                        }
 
-                    is LoginAction.SignUp -> {
-                        viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
-                        viewModel.signUp()
-                    }
+                        is LoginAction.SignUp -> {
+                            viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
+                            viewModel.signUp()
+                        }
 
-                    is LoginAction.ForgotPassword -> viewModel.forgotPassword()
-                    is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
-                    is LoginAction.ResetOnboarding -> {
-                        viewModel.resetOnboardingStatus {
-                            navController.navigate(Screen.Onboarding.route) {
-                                popUpTo(Screen.Login.route) { inclusive = true }
+                        is LoginAction.ForgotPassword -> viewModel.forgotPassword()
+                        is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
+                        is LoginAction.ResetOnboarding -> {
+                            viewModel.resetOnboardingStatus {
+                                navController.navigate(Screen.Onboarding.route) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
                             }
                         }
                     }
                 }
+            )
+        }
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(enabled = false) { },
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-        )
+        }
     }
 }
 

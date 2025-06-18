@@ -46,11 +46,11 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(isConfirmPasswordVisible = !it.isConfirmPasswordVisible) }
     }
 
-    fun setProviderAndToken(googleId: String?, provider: AuthProvider) {
+    fun setProviderAndToken(googleIdToken: String?, provider: AuthProvider) {
         _uiState.update {
             it.copy(
                 provider = provider,
-                googleId = googleId
+                googleIdToken = googleIdToken
             )
         }
     }
@@ -68,11 +68,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun login(googleId: String? = null) {
-        Log.d("LOGIN_DEBUG", "login() function called")
+    fun login(googleIdToken: String? = null) {
         val email = uiState.value.email ?: return
         val password = uiState.value.password
-        val tokenToUse = googleId ?: uiState.value.googleId
+        val tokenToUse = googleIdToken ?: uiState.value.googleIdToken
         val provider = uiState.value.provider
 
         Log.d("UI_STATE", Gson().toJson(uiState.value))
@@ -109,11 +108,12 @@ class LoginViewModel @Inject constructor(
             when (val result = authRepository.login(
                 email = email,
                 password = password,
-                googleId = googleId,
+                googleIdToken = googleIdToken,
                 provider = provider
             )) {
                 is ApiResult.Success -> _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                 is ApiResult.Error -> {
+                    Log.e("LoginError", "Login failed: ${result.exception}")
                     Log.e("LoginError", "Login failed: ${result.message}")
                     setError("Login failed. Please try again.")
                 }

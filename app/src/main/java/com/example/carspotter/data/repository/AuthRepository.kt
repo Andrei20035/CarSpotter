@@ -19,8 +19,8 @@ class AuthRepository @Inject constructor(
     private val userPreferences: UserPreferences
 ) : IAuthRepository {
 
-    override suspend fun login(email: String, password: String?, googleId: String?, provider: AuthProvider): ApiResult<AuthResponse> {
-        val loginRequest = LoginRequest(email, password, googleId, provider)
+    override suspend fun login(email: String, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse> {
+        val loginRequest = LoginRequest(email, password, googleIdToken, provider)
         val result = authApi.login(loginRequest)
 
         if (result is ApiResult.Success) {

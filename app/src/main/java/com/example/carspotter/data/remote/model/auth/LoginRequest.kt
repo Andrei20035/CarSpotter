@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 class LoginRequest (
     val email: String,
     val password: String? = null,
-    val googleId: String? = null,
+    val googleIdToken: String? = null,
     val provider: AuthProvider
 )
