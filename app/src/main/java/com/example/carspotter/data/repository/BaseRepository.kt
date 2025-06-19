@@ -24,16 +24,16 @@ abstract class BaseRepository {
                 if (body != null) {
                     ApiResult.Success(body)
                 } else {
-                    ApiResult.Error(Exception("Response body is null"), "Empty response")
+                    ApiResult.Error( "Empty response", Exception("Response body is null"))
                 }
             } else {
                 val errorMessage = response.errorBody()?.string() ?: "Unknown error"
-                ApiResult.Error(Exception("API call failed with code ${response.code()}"), errorMessage)
+                ApiResult.Error(errorMessage, Exception("API call failed with code ${response.code()}"))
             }
         } catch (e: IOException) {
-            ApiResult.Error(e, "Network error: ${e.message}")
+            ApiResult.Error("Network error: ${e.message}", e)
         } catch (e: Exception) {
-            ApiResult.Error(e, "Unexpected error: ${e.message}")
+            ApiResult.Error("Unexpected error: ${e.message}", e)
         }
     }
 }

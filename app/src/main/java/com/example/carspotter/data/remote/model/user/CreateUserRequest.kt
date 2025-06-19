@@ -1,14 +1,16 @@
 package com.example.carspotter.data.remote.model.user
 
+import com.carspotter.serialization.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
 @Serializable
 data class CreateUserRequest(
     val profilePicturePath: String? = null,
-    val firstName: String,
-    val lastName: String,
+    val fullName: String,
+    @Serializable(with = LocalDateSerializer::class)
     val birthDate: LocalDate,
+    val phoneNumber: String,
     val username: String,
     val country: String
 )

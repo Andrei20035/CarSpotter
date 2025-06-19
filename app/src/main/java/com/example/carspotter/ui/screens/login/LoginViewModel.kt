@@ -78,6 +78,8 @@ class LoginViewModel @Inject constructor(
 
         when (provider) {
             AuthProvider.REGULAR -> {
+                Log.d("PROVIDER FOR REGULAR LOGIN", "Provider: ${provider}")
+                Log.d("CREDENTIALS", "Credentials for login: ${email},  ${password}, ${tokenToUse}, ${provider}")
                 if (!isValidEmail(email)) {
                     setError("Email is invalid")
                     return
@@ -111,11 +113,14 @@ class LoginViewModel @Inject constructor(
                 googleIdToken = googleIdToken,
                 provider = provider
             )) {
-                is ApiResult.Success -> _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+                is ApiResult.Success ->  {
+                    userPreferences.saveJwtToken(result.data.jwtToken)
+                    _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
+                }
                 is ApiResult.Error -> {
                     Log.e("LoginError", "Login failed: ${result.exception}")
                     Log.e("LoginError", "Login failed: ${result.message}")
-                    setError("Login failed. Please try again.")
+                    setError(result.message)
                 }
                 is ApiResult.Loading -> {
                     // already handled
@@ -139,13 +144,14 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (authRepository.register(email, nonNullPassword, nonNullConfirmPassword, authProvider)) {
+            when (val result = authRepository.register(email, nonNullPassword, nonNullConfirmPassword, authProvider)) {
                 is ApiResult.Success -> {
+                    userPreferences.saveJwtToken(result.data.jwtToken)
                     _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                 }
 
                 is ApiResult.Error -> {
-                    setError("Registration failed. Please try again.")
+                    setError(result.message)
                 }
 
                 ApiResult.Loading -> {

@@ -1,5 +1,7 @@
 package com.example.carspotter.utils
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import okhttp3.Request
 import okio.Timeout
 import retrofit2.Call
@@ -87,20 +89,26 @@ class ApiResultCall<T>(
                             this@ApiResultCall,
                             Response.success(
                                 ApiResult.Error(
-                                    Exception("Response body is null"),
-                                    "Empty response"
+                                    "Empty response",
+                                    Exception("Response body is null")
                                 )
                             )
                         )
                     }
                 } else {
-                    val errorMessage = response.errorBody()?.string() ?: "Unknown error"
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val parsed = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                        parsed.error
+                    } catch (e: Exception) {
+                        errorBody ?: "Unknown error"
+                    }
                     callback.onResponse(
                         this@ApiResultCall,
                         Response.success(
                             ApiResult.Error(
-                                Exception("API call failed with code ${response.code()}"),
-                                errorMessage
+                                errorMessage,
+                                Exception("API call failed with code ${response.code()}")
                             )
                         )
                     )
@@ -109,8 +117,8 @@ class ApiResultCall<T>(
 
             override fun onFailure(call: Call<T>, t: Throwable) {
                 val apiResult = when (t) {
-                    is IOException -> ApiResult.Error(t, "Network error: ${t.message}")
-                    else -> ApiResult.Error(t as Exception, "Unexpected error: ${t.message}")
+                    is IOException -> ApiResult.Error("Network error: ${t.message}", t)
+                    else -> ApiResult.Error( "Unexpected error: ${t.message}", t as Exception)
                 }
                 callback.onResponse(this@ApiResultCall, Response.success(apiResult))
             }
@@ -129,8 +137,8 @@ class ApiResultCall<T>(
                 } else {
                     Response.success(
                         ApiResult.Error(
-                            Exception("Response body is null"),
-                            "Empty response"
+                            "Empty response",
+                            Exception("Response body is null")
                         )
                     )
                 }
@@ -138,15 +146,15 @@ class ApiResultCall<T>(
                 val errorMessage = response.errorBody()?.string() ?: "Unknown error"
                 Response.success(
                     ApiResult.Error(
-                        Exception("API call failed with code ${response.code()}"),
-                        errorMessage
+                        errorMessage,
+                        Exception("API call failed with code ${response.code()}")
                     )
                 )
             }
         } catch (e: IOException) {
-            Response.success(ApiResult.Error(e, "Network error: ${e.message}"))
+            Response.success(ApiResult.Error( "Network error: ${e.message}", e))
         } catch (e: Exception) {
-            Response.success(ApiResult.Error(e, "Unexpected error: ${e.message}"))
+            Response.success(ApiResult.Error( "Unexpected error: ${e.message}", e))
         }
     }
 
@@ -160,3 +168,8 @@ class ApiResultCall<T>(
 
     override fun timeout(): Timeout = delegate.timeout()
 }
+
+@Serializable
+data class ErrorResponse(
+    val error: String
+)

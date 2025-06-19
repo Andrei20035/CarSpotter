@@ -20,7 +20,7 @@ class UserPreferences @Inject constructor(
 
     companion object {
         val ONBOARDING_KEY = booleanPreferencesKey("onboarding_completed")
-        val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
+        val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
         val USER_ID_KEY = stringPreferencesKey("user_id")
         val USERNAME_KEY = stringPreferencesKey("username")
         val EMAIL_KEY = stringPreferencesKey("email")
@@ -30,7 +30,7 @@ class UserPreferences @Inject constructor(
         .map { it[ONBOARDING_KEY] ?: false }
 
     val authToken: Flow<String?> = context.dataStore.data
-        .map { it[AUTH_TOKEN_KEY] }
+        .map { it[JWT_TOKEN_KEY] }
 
     val userId: Flow<String?> = context.dataStore.data
         .map { it[USER_ID_KEY] }
@@ -45,8 +45,8 @@ class UserPreferences @Inject constructor(
         context.dataStore.edit { it[ONBOARDING_KEY] = completed }
     }
 
-    suspend fun saveAuthToken(token: String) {
-        context.dataStore.edit { it[AUTH_TOKEN_KEY] = token }
+    suspend fun saveJwtToken(token: String) {
+        context.dataStore.edit { it[JWT_TOKEN_KEY] = token }
     }
 
     suspend fun saveUserId(id: String) {
@@ -63,7 +63,7 @@ class UserPreferences @Inject constructor(
 
     suspend fun clearAuthData() {
         context.dataStore.edit {
-            it.remove(AUTH_TOKEN_KEY)
+            it.remove(JWT_TOKEN_KEY)
             it.remove(USER_ID_KEY)
             it.remove(USERNAME_KEY)
             it.remove(EMAIL_KEY)

@@ -10,22 +10,24 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.carspotter.ui.screens.login.ScreenBackground
 import com.example.carspotter.ui.theme.CarSpotterTheme
 
 @Composable
-fun ProfileSetup(
+fun ProfileCustomization(
     navController: NavController,
-    viewModel: ProfileSetupViewModel = hiltViewModel()
+    viewModel: ProfileCustomizationViewModel = hiltViewModel()
 ) {
-    CarSpotterTheme {
-        Box {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text("Profile Setup")
-            }
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        ScreenBackground {
+
         }
     }
+}
+
+@Composable
+fun ProfileImage() {
+
 }

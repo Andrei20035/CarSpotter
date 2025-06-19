@@ -23,20 +23,12 @@ class AuthRepository @Inject constructor(
         val loginRequest = LoginRequest(email, password, googleIdToken, provider)
         val result = authApi.login(loginRequest)
 
-        if (result is ApiResult.Success) {
-            saveAuthData(result.data)
-        }
-
         return result
     }
 
     override suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse> {
         val registerRequest = RegisterRequest(email, password, provider)
         val result = authApi.register(registerRequest)
-
-        if (result is ApiResult.Success) {
-            saveAuthData(result.data)
-        }
 
         return result
     }
@@ -60,7 +52,4 @@ class AuthRepository @Inject constructor(
         userPreferences.clearAuthData()
     }
 
-    private suspend fun saveAuthData(authResponse: AuthResponse) {
-        userPreferences.saveAuthToken(authResponse.token)
-    }
 }
