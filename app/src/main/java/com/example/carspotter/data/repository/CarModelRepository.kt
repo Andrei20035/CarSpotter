@@ -13,10 +13,25 @@ class CarModelRepository @Inject constructor(
 ) : BaseRepository(), ICarModelRepository {
 
     override suspend fun getAllCarModels(): ApiResult<List<CarModelDTO>> {
-        return safeApiCall { carModelApi.getAllCarModels() }
+        return carModelApi.getAllCarModels()
     }
 
     override suspend fun getCarModelById(modelId: Int): ApiResult<CarModelDTO> {
-        return safeApiCall { carModelApi.getCarModelById(modelId) }
+        return carModelApi.getCarModelById(modelId)
+    }
+
+    override suspend fun getCarModelId(
+        brand: String,
+        model: String
+    ): ApiResult<Int> {
+        return carModelApi.getCarModelId(brand, model)
+    }
+
+    override suspend fun getAllCarBrands(): ApiResult<List<String>> {
+        return carModelApi.getAllCarBrands()
+    }
+
+    override suspend fun getCarModelsForBrand(brand: String): ApiResult<List<String>> {
+        return carModelApi.getCarModelsForBrand(brand)
     }
 }

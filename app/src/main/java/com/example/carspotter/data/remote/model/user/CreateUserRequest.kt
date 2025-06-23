@@ -10,7 +10,7 @@ data class CreateUserRequest(
     val fullName: String,
     @Serializable(with = LocalDateSerializer::class)
     val birthDate: LocalDate,
-    val phoneNumber: String,
+    val phoneNumber: String? = null,
     val username: String,
     val country: String
 )

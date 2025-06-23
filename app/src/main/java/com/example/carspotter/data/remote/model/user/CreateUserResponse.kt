@@ -4,5 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateUserResponse(
-    val jwtToken: String
+    val jwtToken: String,
+    val userId: Int,
 )

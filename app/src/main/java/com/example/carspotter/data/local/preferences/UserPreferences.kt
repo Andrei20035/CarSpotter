@@ -3,6 +3,7 @@ package com.example.carspotter.data.local.preferences
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,7 +22,7 @@ class UserPreferences @Inject constructor(
     companion object {
         val ONBOARDING_KEY = booleanPreferencesKey("onboarding_completed")
         val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
-        val USER_ID_KEY = stringPreferencesKey("user_id")
+        val USER_ID_KEY = intPreferencesKey("user_id")
         val USERNAME_KEY = stringPreferencesKey("username")
         val EMAIL_KEY = stringPreferencesKey("email")
     }
@@ -32,7 +33,7 @@ class UserPreferences @Inject constructor(
     val authToken: Flow<String?> = context.dataStore.data
         .map { it[JWT_TOKEN_KEY] }
 
-    val userId: Flow<String?> = context.dataStore.data
+    val userId: Flow<Int?> = context.dataStore.data
         .map { it[USER_ID_KEY] }
 
     val username: Flow<String?> = context.dataStore.data
@@ -49,7 +50,7 @@ class UserPreferences @Inject constructor(
         context.dataStore.edit { it[JWT_TOKEN_KEY] = token }
     }
 
-    suspend fun saveUserId(id: String) {
+    suspend fun saveUserId(id: Int) {
         context.dataStore.edit { it[USER_ID_KEY] = id }
     }
 

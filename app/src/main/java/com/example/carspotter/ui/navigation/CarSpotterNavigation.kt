@@ -6,7 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.carspotter.ui.screens.login.LoginScreen
 import com.example.carspotter.ui.screens.onboarding.OnboardingScreen
-import com.example.carspotter.ui.screens.profile_setup.ProfileSetup
+import com.example.carspotter.ui.screens.profile_customization.ProfileCustomization
 
 @Composable
 fun CarSpotterNavigation(navController: NavHostController) {
@@ -33,14 +33,14 @@ fun CarSpotterNavigation(navController: NavHostController) {
             )
         }
 
-        composable(Screen.ProfileSetup.route) {
-            ProfileSetup(
+        composable(Screen.ProfileCustomization.route) {
+            ProfileCustomization(
                 navController = navController
             )
         }
 
         composable(Screen.Home.route) {
-            ProfileSetup(
+            ProfileCustomization(
                 navController = navController
             )
         }

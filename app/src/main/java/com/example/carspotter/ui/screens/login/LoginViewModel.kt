@@ -161,14 +161,6 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun setError(message: String) {
-        _uiState.update { it.copy(errorMessage = message, isLoading = false) }
-
-        viewModelScope.launch {
-            delay(3000)
-            _uiState.update { it.copy(errorMessage = null) }
-        }
-    }
 
     fun forgotPassword() {
         // TODO: Implement forgot password logic
@@ -235,5 +227,12 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    private fun setError(message: String) {
+        _uiState.update { it.copy(errorMessage = message, isLoading = false) }
 
+        viewModelScope.launch {
+            delay(3000)
+            _uiState.update { it.copy(errorMessage = null) }
+        }
+    }
 }
