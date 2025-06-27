@@ -1,7 +1,7 @@
 [versions]
 agp = "8.10.1"
-firebaseBom = "33.15.0"
-firebase-analytics = "22.4.0"
+firebaseBom = "33.16.0"
+firebase-analytics = "22.5.0"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 junit = "4.13.2"
@@ -21,9 +21,10 @@ gson = "2.11.0"
 gson-converter = "2.9.0"
 logging-interceptor = "4.12.0"
 google-auth = "21.3.0"
-google-services = "4.4.2"
+google-services = "4.4.3"
 serialization = "1.8.1"
 kotlin-serialization = "2.1.20"
+coil = "3.2.0"
 
 
 [libraries]
@@ -56,6 +57,7 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "google-auth" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization"}
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil"}
 
 
 [plugins]

@@ -21,7 +21,7 @@ data class ProfileCustomizationUiState(
     val fullName: String = "",
     val username: String = "",
     val country: String = "",
-    val birthDate: LocalDate? = null,
+    val birthDate: LocalDate = LocalDate.of(1999, 12, 1),
 
     val carImage: ImageSource? = null,
     val selectedBrand: String = "",

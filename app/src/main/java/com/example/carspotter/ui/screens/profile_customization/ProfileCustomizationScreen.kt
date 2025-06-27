@@ -14,9 +14,19 @@ import com.example.carspotter.ui.screens.login.ScreenBackground
 fun ProfileCustomization(
     navController: NavController,
     viewModel: ProfileCustomizationViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    when  (uiState.currentStep) {}
+    when  (uiState.currentStep) {
+        is ProfileStep.Personal -> {
+            PersonalInfoStep(
+                viewModel = viewModel
+            )
+        }
+        is ProfileStep.Car -> {
+            CarInfoStep(
+                viewModel = viewModel
+            )
+        }
+    }
 }

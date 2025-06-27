@@ -69,6 +69,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.coil.compose)
 
     // Network
     implementation(libs.retrofit)

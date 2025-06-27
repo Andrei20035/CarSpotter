@@ -5,8 +5,7 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun CarInfoStep(
-    uiState: ProfileCustomizationUiState,
-    onAction: (ProfileCustomizationAction) -> Unit,
+    viewModel: ProfileCustomizationViewModel,
     modifier: Modifier = Modifier
 ) {
 
