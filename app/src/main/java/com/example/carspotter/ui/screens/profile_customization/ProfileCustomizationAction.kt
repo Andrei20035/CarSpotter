@@ -1,6 +1,5 @@
 package com.example.carspotter.ui.screens.profile_customization
 
-import android.net.Uri
 import java.time.LocalDate
 
 sealed class ProfileCustomizationAction {

@@ -12,5 +12,8 @@ sealed class LoginAction {
     data class SignUp(val googleId: String?, val provider: AuthProvider) : LoginAction()
     object ForgotPassword : LoginAction()
     object ToggleMode : LoginAction()
+
+    // For test only
     object ResetOnboarding : LoginAction()
+    object SetAuthenticatedTrue: LoginAction()
 }

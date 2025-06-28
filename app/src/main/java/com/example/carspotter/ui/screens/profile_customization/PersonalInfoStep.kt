@@ -1,26 +1,15 @@
 package com.example.carspotter.ui.screens.profile_customization
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.carspotter.ui.screens.login.ScreenBackground
 
 @Composable
@@ -55,6 +44,14 @@ private fun PersonalInfoForm(
     uiState: ProfileCustomizationUiState,
     onAction: (ProfileCustomizationAction) -> Unit,
 ) {
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -69,13 +66,17 @@ private fun PersonalInfoForm(
                 onAction(ProfileCustomizationAction.UpdateProfileImage(ImageSource.Local(uri)))
             }
         )
-        FullNameField(
-            fullName = uiState.fullName,
-            onFullNameChanged = { onAction(ProfileCustomizationAction.UpdateFullName(it)) }
+        LabeledTextField(
+            label = "Full name",
+            value = uiState.fullName,
+            onValueChange = { onAction(ProfileCustomizationAction.UpdateFullName(it)) },
+            placeholderText = "Josh Michael"
         )
-        UsernameField(
-            username = uiState.username,
-            onUsernameChange =  { onAction(ProfileCustomizationAction.UpdateUsername(it)) }
+        LabeledTextField(
+            label = "Username",
+            value = uiState.username,
+            onValueChange = { onAction(ProfileCustomizationAction.UpdateUsername(it)) },
+            placeholderText = "Josh94"
         )
         BirthDateField(
             birthDate = uiState.birthDate,
@@ -83,30 +84,14 @@ private fun PersonalInfoForm(
         )
         CountryDropdown(
             selectedCountry = uiState.country,
-            onCountrySelected = { onAction(ProfileCustomizationAction.UpdateCountry(it)) }
+            onCountrySelected = { onAction(ProfileCustomizationAction.UpdateCountry(it.name)) }
         )
 
         Spacer(Modifier.height(52.dp))
 
-        Button(
+        NextStepButton(
+            text = "Next",
             onClick = { onAction(ProfileCustomizationAction.NextStep) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFF0AB25),
-                disabledContainerColor = Color(0xFFF0AB25).copy(alpha = 0.7f),
-                disabledContentColor = Color.Black.copy(alpha = 0.7f)
-            ),
-        ) {
-            Text(
-                text = "Next",
-                color = Color.Black,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        )
     }
 }

@@ -3,11 +3,7 @@ package com.example.carspotter.data.remote.api
 import com.example.carspotter.data.remote.model.comment.CommentDTO
 import com.example.carspotter.data.remote.model.comment.CommentRequest
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
+import retrofit2.http.*
 
 interface CommentApi {
 

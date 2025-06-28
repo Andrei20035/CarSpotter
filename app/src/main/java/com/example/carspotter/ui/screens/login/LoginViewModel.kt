@@ -175,18 +175,6 @@ class LoginViewModel @Inject constructor(
         setError(message = "Password reset functionality not implemented yet")
     }
 
-    /**
-     * Resets the onboarding status to false and updates the UI state.
-     * This is useful for testing the onboarding flow without having to uninstall the app.
-     *
-     * @param onComplete Callback to be invoked when the reset is complete
-     */
-    fun resetOnboardingStatus(onComplete: () -> Unit) {
-        viewModelScope.launch {
-            userPreferences.resetOnboardingStatus()
-            onComplete()
-        }
-    }
 
     private fun isValidEmail(email: String): Boolean {
         val emailRegex = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
@@ -235,4 +223,22 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = null) }
         }
     }
+
+    /**
+     * Resets the onboarding status to false and updates the UI state.
+     * This is useful for testing the onboarding flow without having to uninstall the app.
+     *
+     * Only for testing purposes
+     */
+    fun resetOnboardingStatus(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            userPreferences.resetOnboardingStatus()
+            onComplete()
+        }
+    }
+
+    fun setAuthenticatedTrue() {
+        _uiState.update {  it.copy(isAuthenticated = true) }
+    }
+
 }

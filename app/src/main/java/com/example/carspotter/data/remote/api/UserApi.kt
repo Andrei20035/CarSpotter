@@ -5,12 +5,7 @@ import com.example.carspotter.data.remote.model.user.CreateUserResponse
 import com.example.carspotter.data.remote.model.user.UpdateProfilePictureRequest
 import com.example.carspotter.data.remote.model.user.UserDTO
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import retrofit2.http.*
 
 interface UserApi {
 

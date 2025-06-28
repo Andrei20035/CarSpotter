@@ -2,15 +2,7 @@ package com.example.carspotter.di
 
 import com.example.carspotter.BuildConfig
 import com.example.carspotter.data.local.preferences.UserPreferences
-import com.example.carspotter.data.remote.api.AuthApi
-import com.example.carspotter.data.remote.api.CarModelApi
-import com.example.carspotter.data.remote.api.CommentApi
-import com.example.carspotter.data.remote.api.FriendApi
-import com.example.carspotter.data.remote.api.FriendRequestApi
-import com.example.carspotter.data.remote.api.LikeApi
-import com.example.carspotter.data.remote.api.PostApi
-import com.example.carspotter.data.remote.api.UserApi
-import com.example.carspotter.data.remote.api.UserCarApi
+import com.example.carspotter.data.remote.api.*
 import com.example.carspotter.utils.ApiResultCallAdapterFactory
 import com.example.carspotter.utils.NetworkConnectivityInterceptor
 import com.google.gson.Gson

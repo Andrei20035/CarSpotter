@@ -1,7 +1,6 @@
 package com.example.carspotter.data.remote.model.comment
 
 import com.example.carspotter.serialization.InstantSerializer
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.time.Instant
 

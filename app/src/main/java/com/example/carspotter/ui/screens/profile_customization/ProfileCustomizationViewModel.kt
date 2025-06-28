@@ -1,11 +1,11 @@
 package com.example.carspotter.ui.screens.profile_customization
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.model.user.CreateUserRequest
-import com.example.carspotter.data.remote.model.user.CreateUserResponse
 import com.example.carspotter.data.remote.model.user_car.UserCarRequest
 import com.example.carspotter.data.repository.CarModelRepository
 import com.example.carspotter.data.repository.UserCarRepository
@@ -13,11 +13,7 @@ import com.example.carspotter.data.repository.UserRepository
 import com.example.carspotter.utils.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -107,6 +103,7 @@ class ProfileCustomizationViewModel @Inject constructor(
                             errorMessage = null
                         )
                     }
+                    Log.d("NextStepButton", uiState.value.currentStep.toString())
                 } else {
                     setError("Please fill in all required fields")
                 }

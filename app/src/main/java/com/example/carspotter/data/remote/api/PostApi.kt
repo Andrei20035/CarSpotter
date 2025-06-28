@@ -2,10 +2,10 @@ package com.example.carspotter.data.remote.api
 
 import com.example.carspotter.data.remote.model.post.PostDTO
 import com.example.carspotter.data.remote.model.post.PostEditRequest
+import com.example.carspotter.data.remote.model.post.PostRequest
 import retrofit2.Response
 import retrofit2.http.*
-import com.example.carspotter.data.remote.model.post.PostRequest
-import java.util.TimeZone
+import java.util.*
 
 interface PostApi {
 
