@@ -13,14 +13,14 @@ class LikeRepository @Inject constructor(
 ) : BaseRepository(), ILikeRepository {
 
     override suspend fun likePost(postId: Int): ApiResult<Unit> {
-        return safeApiCall { likeApi.likePost(postId) }
+        return likeApi.likePost(postId)
     }
 
     override suspend fun unlikePost(postId: Int): ApiResult<Unit> {
-        return safeApiCall { likeApi.unlikePost(postId) }
+        return likeApi.unlikePost(postId)
     }
 
     override suspend fun getLikesForPost(postId: Int): ApiResult<List<UserDTO>> {
-        return safeApiCall { likeApi.getLikesForPost(postId) }
+        return likeApi.getLikesForPost(postId)
     }
 }

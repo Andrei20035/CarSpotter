@@ -6,15 +6,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.model.user.CreateUserRequest
+import com.example.carspotter.data.remote.model.user.UpdateProfilePictureRequest
+import com.example.carspotter.data.remote.model.user.UploadImageRequest
 import com.example.carspotter.data.remote.model.user_car.UserCarRequest
+import com.example.carspotter.data.remote.model.user_car.UserCarUpdateRequest
 import com.example.carspotter.data.repository.CarModelRepository
 import com.example.carspotter.data.repository.UserCarRepository
 import com.example.carspotter.data.repository.UserRepository
 import com.example.carspotter.utils.ApiResult
+import com.example.carspotter.utils.uploadToS3
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -30,7 +38,7 @@ class ProfileCustomizationViewModel @Inject constructor(
     val uiState: StateFlow<ProfileCustomizationUiState> = _uiState.asStateFlow()
 
     fun updateProfileImage(imageSource: ImageSource?) {
-        _uiState.update { it.copy(profileImage = imageSource) }
+        _uiState.update { it.copy(profilePicture = imageSource) }
     }
 
     fun updateFullName(fullName: String) {
@@ -72,8 +80,6 @@ class ProfileCustomizationViewModel @Inject constructor(
             is ApiResult.Error -> {
                 _uiState.update { it.copy(errorMessage = result.message, isFetchingBrands = false) }
             }
-            ApiResult.Loading -> {}
-
         }
     }
 
@@ -88,8 +94,6 @@ class ProfileCustomizationViewModel @Inject constructor(
             is ApiResult.Error -> {
                 _uiState.update { it.copy(errorMessage = result.message, isFetchingModels = false) }
             }
-            ApiResult.Loading -> {}
-
         }
     }
 
@@ -133,23 +137,29 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
 
-    fun completeProfileSetup() {
+    fun completeProfileSetup(profileImageBytes: ByteArray?, carImageBytes: ByteArray?) {
+        val fullName = _uiState.value.fullName
+        val username = _uiState.value.username
+        val nonNullBirthDate = _uiState.value.birthDate!!
+        val country = _uiState.value.country
+        val brand = _uiState.value.selectedBrand
+        val model = _uiState.value.selectedModel
+
         viewModelScope.launch {
             try {
-                val nonNullBirthDate = _uiState.value.birthDate!!
-                val profilePicturePath = _uiState.value.profileImage
-                val carImage = _uiState.value.carImage
-                val fullName = _uiState.value.fullName
-                val username = _uiState.value.username
-                val country = _uiState.value.country
-                val brand = _uiState.value.selectedBrand
-                val model = _uiState.value.selectedModel
-                var carModelId: Int? = null
-
                 _uiState.update { it.copy(isLoading = true) }
 
+
+                val carModelId = when (val result = carModelRepository.getCarModelId(brand, model)) {
+                    is ApiResult.Success -> result.data
+                    is ApiResult.Error -> {
+                        setError(result.message)
+                        return@launch
+                    }
+                }
+
                 val createUserRequest = CreateUserRequest(
-                    profilePicturePath = imageSourceToString(profilePicturePath),
+                    profilePicturePath = null,
                     fullName = fullName,
                     birthDate = nonNullBirthDate,
                     username = username,
@@ -158,59 +168,62 @@ class ProfileCustomizationViewModel @Inject constructor(
 
                 val createUserResult = userRepository.createUser(createUserRequest)
 
-                when(createUserResult) {
+                val userId = when(createUserResult) {
                     is ApiResult.Success -> {
                         userPreferences.saveJwtToken(createUserResult.data.jwtToken)
                         userPreferences.saveUserId(createUserResult.data.userId)
+                        createUserResult.data.userId
                     }
                     is ApiResult.Error -> {
                         setError(createUserResult.message)
+                        return@launch
                     }
-                    is ApiResult.Loading -> {}
-                }
-
-                val userId = userPreferences.userId.firstOrNull() ?: throw IllegalStateException("User ID missing")
-                val getCarModelIdResult = carModelRepository.getCarModelId(brand, model)
-
-                when(getCarModelIdResult) {
-                    is ApiResult.Success -> {
-                        carModelId = getCarModelIdResult.data
-                    }
-                    is ApiResult.Error -> {
-                        setError(getCarModelIdResult.message)
-                    }
-                    ApiResult.Loading -> {}
                 }
 
                 val userCarRequest = UserCarRequest(
                     userId = userId,
-                    carModelId = carModelId ?: throw IllegalStateException("Car Model ID missing"),
-                    imagePath = imageSourceToString(carImage),
+                    carModelId = carModelId,
+                    imagePath = null,
                 )
 
                 val createUserCarResult = userCarRepository.createUserCar(userCarRequest)
-
                 when(createUserCarResult) {
-                    is ApiResult.Success -> {
-
-                    }
+                    is ApiResult.Success -> {}
                     is ApiResult.Error -> {
-                       setError(createUserCarResult.message)
+                        setError(createUserCarResult.message)
+                        return@launch
                     }
-                    ApiResult.Loading -> {}
+                }
+
+                val profilePicturePath = profileImageBytes?.let {
+                    val request = UploadImageRequest("profiles/$userId.jpg")
+                    uploadImageAndGetPublicUrl(request, it)
+                }
+
+                val carPicturePath = carImageBytes?.let {
+                    val request = UploadImageRequest("cars/$userId.jpg")
+                    uploadImageAndGetPublicUrl(request, it)
+                }
+
+                val profilePictureRequest = UpdateProfilePictureRequest(profilePicturePath)
+                val userCarUpdateRequest = UserCarUpdateRequest(carModelId, carPicturePath)
+
+                val profileResponse = userRepository.updateProfilePicture(profilePictureRequest)
+                val carResponse = userCarRepository.updateUserCar(userCarUpdateRequest)
+
+                when(profileResponse) {
+                    is ApiResult.Error -> setError(profileResponse.message)
+                    is ApiResult.Success -> {}
+                }
+
+                when(carResponse) {
+                    is ApiResult.Error -> setError(carResponse.message)
+                    is ApiResult.Success -> {}
                 }
 
                 _uiState.update { it.copy(isLoading = false) }
-
-
-
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "An error occurred"
-                    )
-                }
+                setError(e.message.toString())
             }
         }
     }
@@ -247,4 +260,17 @@ class ProfileCustomizationViewModel @Inject constructor(
             else -> ImageSource.Local(Uri.parse(imageString))
         }
     }
+
+    private suspend fun uploadImageAndGetPublicUrl(request: UploadImageRequest, imageBytes: ByteArray): String {
+        val uploadResponse = userRepository.getUploadUrl(request)
+
+        return when (uploadResponse) {
+            is ApiResult.Success -> {
+                uploadToS3(uploadResponse.data.uploadUrl, imageBytes)
+                uploadResponse.data.publicUrl
+            }
+            is ApiResult.Error -> throw IOException("Failed to get upload URL: ${uploadResponse.message}")
+        }
+    }
 }
+

@@ -3,6 +3,7 @@ package com.example.carspotter.data.remote.model.user
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UpdateProfilePictureRequest(
-    val imagePath: String?
+data class UploadUrlResponse(
+    val uploadUrl: String,
+    val publicUrl: String,
 )

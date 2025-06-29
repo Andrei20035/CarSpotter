@@ -60,7 +60,7 @@ private fun PersonalInfoForm(
         verticalArrangement = Arrangement.Center
     ) {
         PictureContainer(
-            picture = uiState.profileImage,
+            picture = uiState.profilePicture,
             text = "Your profile picture",
             onImageSelected = { uri ->
                 onAction(ProfileCustomizationAction.UpdateProfileImage(ImageSource.Local(uri)))

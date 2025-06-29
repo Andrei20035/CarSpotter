@@ -1,7 +1,7 @@
 package com.example.carspotter.data.remote.api
 
 import com.example.carspotter.data.remote.model.user.UserDTO
-import retrofit2.Response
+import com.example.carspotter.utils.ApiResult
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -12,15 +12,15 @@ interface LikeApi {
     @POST("likes/{postId}")
     suspend fun likePost(
         @Path("postId") postId: Int
-    ): Response<Unit>
+    ): ApiResult<Unit>
 
     @DELETE("likes/{postId}")
     suspend fun unlikePost(
         @Path("postId") postId: Int
-    ): Response<Unit>
+    ): ApiResult<Unit>
 
     @GET("likes/posts/{postId}")
     suspend fun getLikesForPost(
         @Path("postId") postId: Int
-    ): Response<List<UserDTO>>
+    ): ApiResult<List<UserDTO>>
 }

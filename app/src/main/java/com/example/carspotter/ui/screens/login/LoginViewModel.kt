@@ -122,9 +122,6 @@ class LoginViewModel @Inject constructor(
                     Log.e("LoginError", "Login failed: ${result.message}")
                     setError(result.message)
                 }
-                is ApiResult.Loading -> {
-                    // already handled
-                }
             }
         }
     }
@@ -152,10 +149,6 @@ class LoginViewModel @Inject constructor(
 
                 is ApiResult.Error -> {
                     setError(result.message)
-                }
-
-                ApiResult.Loading -> {
-                    // Already handled by setting isLoading to true
                 }
             }
         }

@@ -16,30 +16,30 @@ class UserCarRepository @Inject constructor(
 ) : BaseRepository(), IUserCarRepository {
 
     override suspend fun createUserCar(request: UserCarRequest): ApiResult<Unit> {
-        return safeApiCall { userCarApi.createUserCar(request) }
+        return userCarApi.createUserCar(request)
     }
 
     override suspend fun getUserCarById(userCarId: Int): ApiResult<UserCarDTO> {
-        return safeApiCall { userCarApi.getUserCarById(userCarId) }
+        return userCarApi.getUserCarById(userCarId)
     }
 
     override suspend fun getUserCarByUserId(userId: Int): ApiResult<UserCarDTO> {
-        return safeApiCall { userCarApi.getUserCarByUserId(userId) }
+        return userCarApi.getUserCarByUserId(userId)
     }
 
     override suspend fun getUserByUserCarId(userCarId: Int): ApiResult<UserDTO> {
-        return safeApiCall { userCarApi.getUserByUserCarId(userCarId) }
+        return userCarApi.getUserByUserCarId(userCarId)
     }
 
     override suspend fun updateUserCar(request: UserCarUpdateRequest): ApiResult<Unit> {
-        return safeApiCall { userCarApi.updateUserCar(request) }
+        return userCarApi.updateUserCar(request)
     }
 
     override suspend fun deleteUserCar(): ApiResult<Unit> {
-        return safeApiCall { userCarApi.deleteUserCar() }
+        return userCarApi.deleteUserCar()
     }
 
     override suspend fun getAllUserCars(): ApiResult<List<UserCarDTO>> {
-        return safeApiCall { userCarApi.getAllUserCars() }
+        return userCarApi.getAllUserCars()
     }
 }

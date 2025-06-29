@@ -25,6 +25,7 @@ google-services = "4.4.3"
 serialization = "1.8.1"
 kotlin-serialization = "2.1.20"
 coil = "3.2.0"
+firebaseCrashlyticsBuildtools = "3.0.4"
 
 
 [libraries]
@@ -58,6 +59,7 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "google-auth" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization"}
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil"}
+firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 
 
 [plugins]

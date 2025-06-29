@@ -13,18 +13,18 @@ class FriendRepository @Inject constructor(
 ) : BaseRepository(), IFriendRepository {
 
     override suspend fun getAllFriends(): ApiResult<List<FriendDTO>> {
-        return safeApiCall { friendApi.getAllFriends() }
+        return friendApi.getAllFriends()
     }
 
     override suspend fun getAllFriendsAdmin(): ApiResult<List<FriendDTO>> {
-        return safeApiCall { friendApi.getAllFriendsAdmin() }
+        return friendApi.getAllFriendsAdmin()
     }
 
     override suspend fun addFriend(friendId: Int): ApiResult<Unit> {
-        return safeApiCall { friendApi.addFriend(friendId) }
+        return friendApi.addFriend(friendId)
     }
 
     override suspend fun deleteFriend(friendId: Int): ApiResult<Unit> {
-        return safeApiCall { friendApi.deleteFriend(friendId) }
+        return friendApi.deleteFriend(friendId)
     }
 }

@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.hilt.core)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.firebase.crashlytics.buildtools)
     kapt(libs.hilt.compiler)
     implementation(libs.datastore.preferences)
     implementation(libs.compose.foundation)

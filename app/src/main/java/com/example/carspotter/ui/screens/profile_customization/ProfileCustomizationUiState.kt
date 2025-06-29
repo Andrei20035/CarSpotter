@@ -17,7 +17,7 @@ data class ProfileCustomizationUiState(
     val allBrands: List<String> = emptyList(),
     val modelsForSelectedBrand: List<String> = emptyList(),
 
-    val profileImage: ImageSource? = null,
+    val profilePicture: ImageSource? = null,
     val fullName: String = "",
     val username: String = "",
     val country: String = "Romania",

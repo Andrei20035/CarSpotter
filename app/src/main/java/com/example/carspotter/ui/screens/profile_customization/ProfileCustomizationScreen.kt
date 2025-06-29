@@ -21,7 +21,8 @@ fun ProfileCustomization(
         }
         is ProfileStep.Car -> {
             CarInfoStep(
-                viewModel = viewModel
+                viewModel = viewModel,
+                navController = navController,
             )
         }
     }

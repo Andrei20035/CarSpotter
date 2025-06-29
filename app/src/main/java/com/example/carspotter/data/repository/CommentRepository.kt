@@ -20,7 +20,7 @@ class CommentRepository @Inject constructor(
      * @return ApiResult containing a list of CommentDTO or error
      */
     override suspend fun getCommentsForPost(postId: Int): ApiResult<List<CommentDTO>> {
-        return safeApiCall { commentApi.getCommentsForPost(postId) }
+        return getCommentsForPost(postId)
     }
 
     /**
@@ -30,7 +30,7 @@ class CommentRepository @Inject constructor(
      * @return ApiResult containing Unit on success or error
      */
     override suspend fun addComment(commentRequest: CommentRequest): ApiResult<Unit> {
-        return safeApiCall { commentApi.addComment(commentRequest) }
+        return addComment(commentRequest)
     }
 
     /**
@@ -40,6 +40,6 @@ class CommentRepository @Inject constructor(
      * @return ApiResult containing Unit on success or error
      */
     override suspend fun deleteComment(commentId: Int): ApiResult<Unit> {
-        return safeApiCall { commentApi.deleteComment(commentId) }
+        return deleteComment(commentId)
     }
 }
