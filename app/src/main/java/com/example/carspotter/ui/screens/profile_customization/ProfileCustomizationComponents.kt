@@ -17,7 +17,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,10 +50,12 @@ import java.util.*
 
 @Composable
 fun PictureContainer(
+    modifier: Modifier = Modifier,
+    currentStep: ProfileStep,
     picture: ImageSource?,
     text: String,
     onImageSelected: (Uri) -> Unit,
-    modifier: Modifier = Modifier
+    onBackPress: ((ProfileCustomizationAction) -> Unit)? = null,
 ) {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -65,21 +69,45 @@ fun PictureContainer(
             .padding(bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = text,
-            color = Color(0xFFDBB8B8),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                if (currentStep == ProfileStep.Car) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier
+                            .clickable {
+                                onBackPress?.invoke(ProfileCustomizationAction.PreviousStep)
+                            }
+                    )
+                }
+                Text(
+                    text = text,
+                    color = Color(0xFFDBB8B8),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center)
+                    )
+            }
+        }
 
         Box(
-            modifier = Modifier
-                .size(140.dp)
-                .clip(CircleShape)
+            modifier = when (currentStep) {
+                ProfileStep.Personal -> Modifier
+                    .size(140.dp)
+                    .clip(CircleShape)
+
+                ProfileStep.Car -> Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            }
                 .background(Color.White.copy(alpha = 0.9f).copy(alpha = 0.9f))
                 .clickable { launcher.launch("image/*") },
             contentAlignment = Alignment.Center
@@ -88,10 +116,10 @@ fun PictureContainer(
                 is ImageSource.Local -> {
                     AsyncImage(
                         model = picture.uri,
-                        contentDescription = "Profile Image",
+                        contentDescription = "Image",
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape),
+                            .clip(if (currentStep == ProfileStep.Car) RoundedCornerShape(12.dp) else CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -99,10 +127,10 @@ fun PictureContainer(
                 is ImageSource.Remote -> {
                     AsyncImage(
                         model = picture.url,
-                        contentDescription = "Profile Image",
+                        contentDescription = "Image",
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape),
+                            .clip(if (currentStep == ProfileStep.Car) RoundedCornerShape(12.dp) else CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -121,6 +149,130 @@ fun PictureContainer(
                             color = Color.Gray,
                             fontSize = 12.sp
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DropdownField(
+    selectedItem: String,
+    items: List<String>,
+    label: String,
+    onItemSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            color = Color(0xFFDBB8B8),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp, start = 8.dp)
+        )
+
+        Box {
+            OutlinedTextField(
+                value = selectedItem,
+                onValueChange = {},
+                readOnly = true,
+                interactionSource = interactionSource,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.White.copy(alpha = 0.9f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.9f)
+                ),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Drop down",
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = Color.Black,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+        }
+    }
+
+    // Toggle dropdown expansion when the TextField is clicked
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Press) {
+                expanded = !expanded
+            }
+        }
+    }
+
+    if (expanded) {
+        Popup(
+            onDismissRequest = { expanded = false },
+            properties = PopupProperties(
+                focusable = true,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { expanded = false }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.4f)
+                        .align(Alignment.Center)
+                        .padding(horizontal = 16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        items(items) { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onItemSelected(item)
+                                        expanded = false
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = item,
+                                    fontSize = 16.sp,
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Divider(color = Color.Gray.copy(alpha = 0.1f), thickness = 0.5.dp)
+                        }
                     }
                 }
             }

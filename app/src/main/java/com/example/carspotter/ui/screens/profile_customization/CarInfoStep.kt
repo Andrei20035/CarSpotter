@@ -2,14 +2,22 @@ package com.example.carspotter.ui.screens.profile_customization
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.carspotter.ui.screens.login.ScreenBackground
 import java.io.IOException
@@ -35,9 +43,10 @@ fun CarInfoStep(
                         is ProfileCustomizationAction.UpdateCarModel -> viewModel.updateCarModel(action.model)
                         is ProfileCustomizationAction.Complete ->  {
                             val profileImageBytes = uriToByteArray(uiState.profilePicture, context)
-                            val carImageBytes = uriToByteArray(uiState.carImage, context)
+                            val carImageBytes = uriToByteArray(uiState.carPicture, context)
                             viewModel.completeProfileSetup(profileImageBytes, carImageBytes)
                         }
+                        is ProfileCustomizationAction.PreviousStep -> viewModel.previousStep()
                         else -> {}
                     }
                 }
@@ -56,6 +65,57 @@ private fun CarInfoForm(
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 50.dp, horizontal = 24.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            PictureContainer(
+                currentStep = uiState.currentStep,
+                picture = uiState.carPicture,
+                text = "You car picture",
+                onImageSelected = { uri ->
+                    onAction(ProfileCustomizationAction.UpdateCarImage(ImageSource.Local(uri)))
+                },
+                onBackPress = { onAction(ProfileCustomizationAction.PreviousStep) }
+            )
+
+            DropdownField(
+                selectedItem = uiState.selectedBrand,
+                items = uiState.allBrands,
+                label = "Brand",
+                onItemSelected = { brand ->
+                    onAction(ProfileCustomizationAction.UpdateCarBrand(brand))
+                }
+            )
+            DropdownField(
+                selectedItem = uiState.selectedModel,
+                items = uiState.modelsForSelectedBrand,
+                label = "Model",
+                onItemSelected = { model ->
+                    onAction(ProfileCustomizationAction.UpdateCarModel(model))
+                }
+            )
+
+        }
+
+        if (uiState.isFetchingBrands || uiState.isFetchingModels) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }

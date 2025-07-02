@@ -8,5 +8,5 @@ interface ICarModelRepository {
     suspend fun getCarModelById(modelId: Int): ApiResult<CarModelDTO>
     suspend fun getCarModelId(brand: String, model: String): ApiResult<Int>
     suspend fun getAllCarBrands(): ApiResult<List<String>>
-    suspend fun getCarModelsForBrand(brand: String): ApiResult<List<String>>
+    suspend fun getModelsForBrand(brand: String): ApiResult<List<String>>
 }

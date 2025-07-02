@@ -58,56 +58,68 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
     fun updateCarImage(imageSource: ImageSource?) {
-        _uiState.update { it.copy(carImage = imageSource) }
+        _uiState.update { it.copy(carPicture = imageSource) }
     }
 
     fun updateCarBrand(brand: String) {
         _uiState.update { it.copy(selectedBrand = brand) }
+
+        viewModelScope.launch {
+            loadModelsForBrand()
+        }
     }
 
     fun updateCarModel(model: String) {
         _uiState.update { it.copy(selectedModel = model) }
     }
 
-    suspend fun fetchCarBrands() {
-        _uiState.update { it.copy( isFetchingBrands = true ) }
-        val result = carModelRepository.getAllCarBrands()
+    suspend fun loadCarBrands() {
+        _uiState.update { it.copy(isFetchingBrands = true) }
+        val brands = carModelRepository.getAllCarBrands()
 
-        when(result) {
+        when(brands) {
             is ApiResult.Success -> {
-                _uiState.update { it.copy(allBrands = result.data, isFetchingBrands = false)}
+                _uiState.update { it.copy(allBrands = brands.data) }
+                Log.d("CAR BRANDS", "Car brands successfully loaded")
+                Log.d("CAR BRANDS", _uiState.value.allBrands.toString())
             }
             is ApiResult.Error -> {
-                _uiState.update { it.copy(errorMessage = result.message, isFetchingBrands = false) }
+                setError(brands.message)
+                Log.d("CAR BRANDS", "Error when loading car brands")
             }
         }
+        _uiState.update { it.copy(isFetchingBrands = false) }
+
     }
 
-    suspend fun fetchCarModels(brand: String) {
-        _uiState.update { it.copy( isFetchingModels = true ) }
-        val result = carModelRepository.getCarModelsForBrand(brand)
+    suspend fun loadModelsForBrand() {
+        _uiState.update { it.copy(isFetchingModels = true) }
+        val models = carModelRepository.getModelsForBrand(_uiState.value.selectedBrand)
 
-        when(result) {
+        when(models) {
             is ApiResult.Success -> {
-                _uiState.update { it.copy(modelsForSelectedBrand = result.data, isFetchingModels = false)}
+                _uiState.update { it.copy(modelsForSelectedBrand = models.data) }
             }
-            is ApiResult.Error -> {
-                _uiState.update { it.copy(errorMessage = result.message, isFetchingModels = false) }
-            }
+            is ApiResult.Error -> setError(models.message)
         }
+        _uiState.update { it.copy(isFetchingModels = false) }
+
     }
 
     fun nextStep() {
         when (_uiState.value.currentStep) {
             ProfileStep.Personal -> {
                 if (isPersonalInfoValid()) {
-                    _uiState.update {
-                        it.copy(
-                            currentStep = ProfileStep.Car,
-                            errorMessage = null
-                        )
+                    viewModelScope.launch {
+                        loadCarBrands()
+                        _uiState.update {
+                            it.copy(
+                                currentStep = ProfileStep.Car,
+                                errorMessage = null
+                            )
+                        }
+                        Log.d("NextStepButton", _uiState.value.currentStep.toString())
                     }
-                    Log.d("NextStepButton", uiState.value.currentStep.toString())
                 } else {
                     setError("Please fill in all required fields")
                 }
@@ -122,7 +134,6 @@ class ProfileCustomizationViewModel @Inject constructor(
     fun previousStep() {
         when (_uiState.value.currentStep) {
             ProfileStep.Personal -> {
-                // Do nothing - already on first step
             }
 
             ProfileStep.Car -> {
@@ -135,7 +146,6 @@ class ProfileCustomizationViewModel @Inject constructor(
             }
         }
     }
-
 
     fun completeProfileSetup(profileImageBytes: ByteArray?, carImageBytes: ByteArray?) {
         val fullName = _uiState.value.fullName

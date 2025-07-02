@@ -25,7 +25,7 @@ interface CarModelApi {
     suspend fun getAllCarBrands(): ApiResult<List<String>>
 
     @GET("car-models/brands/{brand}/models")
-    suspend fun getCarModelsForBrand(
+    suspend fun getModelsForBrand(
         @Path("brand") brand: String
     ): ApiResult<List<String>>
 }

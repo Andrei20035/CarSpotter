@@ -55,11 +55,12 @@ private fun PersonalInfoForm(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 48.dp),
+            .padding(horizontal = 24.dp, vertical = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         PictureContainer(
+            currentStep = uiState.currentStep,
             picture = uiState.profilePicture,
             text = "Your profile picture",
             onImageSelected = { uri ->

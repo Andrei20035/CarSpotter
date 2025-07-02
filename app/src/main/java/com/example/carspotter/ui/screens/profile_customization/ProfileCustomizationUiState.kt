@@ -23,13 +23,13 @@ data class ProfileCustomizationUiState(
     val country: String = "Romania",
     val birthDate: LocalDate? = null,
 
-    val carImage: ImageSource? = null,
+    val carPicture: ImageSource? = null,
     val selectedBrand: String = "",
     val selectedModel: String = "",
     val isFetchingBrands: Boolean = false,
     val isFetchingModels: Boolean = false,
 
-    val currentStep: ProfileStep = ProfileStep.Personal,
+    val currentStep: ProfileStep = ProfileStep.Personal, // TODO: Modify in production
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

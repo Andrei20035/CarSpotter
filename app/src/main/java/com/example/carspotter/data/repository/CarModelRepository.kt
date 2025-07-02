@@ -31,7 +31,7 @@ class CarModelRepository @Inject constructor(
         return carModelApi.getAllCarBrands()
     }
 
-    override suspend fun getCarModelsForBrand(brand: String): ApiResult<List<String>> {
-        return carModelApi.getCarModelsForBrand(brand)
+    override suspend fun getModelsForBrand(brand: String): ApiResult<List<String>> {
+        return carModelApi.getModelsForBrand(brand)
     }
 }
