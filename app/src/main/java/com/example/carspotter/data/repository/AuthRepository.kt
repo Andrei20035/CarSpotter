@@ -17,24 +17,20 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val authApi: AuthApi,
     private val userPreferences: UserPreferences
-) : IAuthRepository {
+) : IAuthRepository, BaseRepository() {
 
     override suspend fun login(email: String, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse> {
         val loginRequest = LoginRequest(email, password, googleIdToken, provider)
-        val result = authApi.login(loginRequest)
-
-        return result
+        return safeApiCall { authApi.login(loginRequest) }
     }
 
     override suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse> {
         val registerRequest = RegisterRequest(email, password, provider)
-        val result = authApi.register(registerRequest)
-
-        return result
+        return safeApiCall { authApi.register(registerRequest) }
     }
 
     override suspend fun deleteAccount(): ApiResult<Unit> {
-        val result = authApi.deleteAccount()
+        val result =  safeApiCall { authApi.deleteAccount() }
 
         if (result is ApiResult.Success) {
             userPreferences.clearAuthData()
@@ -45,7 +41,7 @@ class AuthRepository @Inject constructor(
 
     override suspend fun updatePassword(currentPassword: String): ApiResult<Unit> {
         val updatePasswordRequest = UpdatePasswordRequest(currentPassword)
-        return authApi.updatePassword(updatePasswordRequest)
+        return safeApiCall { authApi.updatePassword(updatePasswordRequest) }
     }
 
     override suspend fun logout() {

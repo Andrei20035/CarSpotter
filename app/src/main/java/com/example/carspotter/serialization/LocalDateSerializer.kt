@@ -1,4 +1,4 @@
-package com.carspotter.serialization
+package com.example.carspotter.serialization
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind

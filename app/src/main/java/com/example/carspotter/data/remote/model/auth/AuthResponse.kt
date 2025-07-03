@@ -7,5 +7,5 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class AuthResponse(
-    val jwtToken: String,
+    val token: String,
 )

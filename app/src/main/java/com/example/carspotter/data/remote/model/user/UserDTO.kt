@@ -1,6 +1,6 @@
 package com.example.carspotter.data.remote.model.user
 
-import com.carspotter.serialization.LocalDateSerializer
+import com.example.carspotter.serialization.LocalDateSerializer
 import com.example.carspotter.serialization.InstantSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant

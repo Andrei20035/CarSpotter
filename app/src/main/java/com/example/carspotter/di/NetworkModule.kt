@@ -1,5 +1,6 @@
 package com.example.carspotter.di
 
+import android.util.Log
 import com.example.carspotter.BuildConfig
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.api.*
@@ -13,11 +14,14 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -40,7 +44,7 @@ object NetworkModule {
     fun provideAuthInterceptor(userPreferences: UserPreferences): Interceptor {
         return Interceptor { chain ->
             val token = runBlocking { userPreferences.authToken.firstOrNull() }
-
+            Log.d("TOKEN USED", token.toString())
             val newRequest = chain.request().newBuilder().apply {
                 if (!token.isNullOrBlank()) {
                     addHeader("Authorization", "Bearer $token")
@@ -58,7 +62,7 @@ object NetworkModule {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
-                HttpLoggingInterceptor.Level.NONE  // no logs in production
+                HttpLoggingInterceptor.Level.NONE
             }
         }
     }
@@ -82,14 +86,20 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(gson: Gson, okHttpClient: OkHttpClient): Retrofit {
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        val contentType = "application/json".toMediaType()
+
+        val json = Json {
+            ignoreUnknownKeys = true
+        }
+
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .addCallAdapterFactory(ApiResultCallAdapterFactory())
+            .addConverterFactory(json.asConverterFactory(contentType))
             .build()
     }
+
 
     @Provides
     @Singleton
@@ -143,6 +153,12 @@ object NetworkModule {
     @Singleton
     fun provideUserCarApi(retrofit: Retrofit): UserCarApi {
         return retrofit.create(UserCarApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providesUploadImageApi(retrofit: Retrofit): UploadImageApi {
+        return retrofit.create(UploadImageApi::class.java)
     }
 
 }

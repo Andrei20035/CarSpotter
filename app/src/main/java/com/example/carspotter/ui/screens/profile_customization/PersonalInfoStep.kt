@@ -1,5 +1,6 @@
 package com.example.carspotter.ui.screens.profile_customization
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -18,6 +19,12 @@ fun PersonalInfoStep(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         ScreenBackground {
@@ -64,7 +71,8 @@ private fun PersonalInfoForm(
             picture = uiState.profilePicture,
             text = "Your profile picture",
             onImageSelected = { uri ->
-                onAction(ProfileCustomizationAction.UpdateProfileImage(ImageSource.Local(uri)))
+                val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                onAction(ProfileCustomizationAction.UpdateProfileImage(ImageSource.Local(uri, mimeType)))
             }
         )
         LabeledTextField(
@@ -88,7 +96,7 @@ private fun PersonalInfoForm(
             onCountrySelected = { onAction(ProfileCustomizationAction.UpdateCountry(it.name)) }
         )
 
-        Spacer(Modifier.height(52.dp))
+        Spacer(Modifier.weight(1f))
 
         NextStepButton(
             text = "Next",

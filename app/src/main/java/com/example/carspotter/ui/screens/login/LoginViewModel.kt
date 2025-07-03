@@ -114,12 +114,10 @@ class LoginViewModel @Inject constructor(
                 provider = provider
             )) {
                 is ApiResult.Success ->  {
-                    userPreferences.saveJwtToken(result.data.jwtToken)
+                    userPreferences.saveJwtToken(result.data.token)
                     _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                 }
                 is ApiResult.Error -> {
-                    Log.e("LoginError", "Login failed: ${result.exception}")
-                    Log.e("LoginError", "Login failed: ${result.message}")
                     setError(result.message)
                 }
             }
@@ -143,7 +141,7 @@ class LoginViewModel @Inject constructor(
 
             when (val result = authRepository.register(email, nonNullPassword, nonNullConfirmPassword, authProvider)) {
                 is ApiResult.Success -> {
-                    userPreferences.saveJwtToken(result.data.jwtToken)
+                    userPreferences.saveJwtToken(result.data.token)
                     _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
                 }
 

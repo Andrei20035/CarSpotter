@@ -42,6 +42,7 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
 import com.example.carspotter.domain.model.CountryItem
+import com.example.carspotter.ui.navigation.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -66,13 +67,13 @@ fun PictureContainer(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp),
+            .padding(bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(modifier = Modifier.weight(1f)) {
@@ -178,15 +179,16 @@ fun DropdownField(
                 .padding(bottom = 8.dp, start = 8.dp)
         )
 
-        Box {
+        Box(modifier = Modifier
+            .height(55.dp),
+        ) {
             OutlinedTextField(
                 value = selectedItem,
                 onValueChange = {},
                 readOnly = true,
                 interactionSource = interactionSource,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
+                    .fillMaxSize(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
@@ -195,10 +197,11 @@ fun DropdownField(
                     unfocusedContainerColor = Color.White.copy(alpha = 0.9f)
                 ),
                 trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
+                    Image(
+                        painter = painterResource(id = R.drawable.arrow_drop_down_circle_24px),
                         contentDescription = "Drop down",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(24.dp)
                     )
                 },
                 singleLine = true,
@@ -427,8 +430,6 @@ fun CountryDropdown(
     val interactionSource = remember { MutableInteractionSource() }
 
 
-    val context = LocalContext.current
-
     LaunchedEffect(Unit) {
         if (countries == null && !isLoading) {
             isLoading = true
@@ -596,8 +597,8 @@ fun NextStepButton(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .padding(bottom = 16.dp),
+            .height(56.dp)
+            .padding(bottom = 8.dp),
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFFF0AB25),
@@ -612,6 +613,24 @@ fun NextStepButton(
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+fun SkipCarInfoText(
+    onClick: (ProfileCustomizationAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = "Skip this step",
+        color = Color.Gray,
+        fontSize = 14.sp,
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                onClick(ProfileCustomizationAction.NextStep)
+            }),
+        textAlign = TextAlign.Center
+    )
 }
 
 private fun getFlagEmoji(countryCode: String): String {

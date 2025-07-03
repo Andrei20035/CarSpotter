@@ -86,7 +86,6 @@ class ApiResultCall<T>(
                             Response.success(
                                 ApiResult.Error(
                                     "Empty response",
-                                    Exception("Response body is null")
                                 )
                             )
                         )
@@ -104,7 +103,6 @@ class ApiResultCall<T>(
                         Response.success(
                             ApiResult.Error(
                                 errorMessage,
-                                Exception("API call failed with code ${response.code()}")
                             )
                         )
                     )
@@ -113,8 +111,8 @@ class ApiResultCall<T>(
 
             override fun onFailure(call: Call<T>, t: Throwable) {
                 val apiResult = when (t) {
-                    is IOException -> ApiResult.Error("Network error: ${t.message}", t)
-                    else -> ApiResult.Error( "Unexpected error: ${t.message}", t as Exception)
+                    is IOException -> ApiResult.Error("Network error: ${t.message}")
+                    else -> ApiResult.Error( "Unexpected error: ${t.message}")
                 }
                 callback.onResponse(this@ApiResultCall, Response.success(apiResult))
             }
@@ -134,7 +132,6 @@ class ApiResultCall<T>(
                     Response.success(
                         ApiResult.Error(
                             "Empty response",
-                            Exception("Response body is null")
                         )
                     )
                 }
@@ -143,14 +140,13 @@ class ApiResultCall<T>(
                 Response.success(
                     ApiResult.Error(
                         errorMessage,
-                        Exception("API call failed with code ${response.code()}")
                     )
                 )
             }
         } catch (e: IOException) {
-            Response.success(ApiResult.Error( "Network error: ${e.message}", e))
+            Response.success(ApiResult.Error( "Network error: ${e.message}"))
         } catch (e: Exception) {
-            Response.success(ApiResult.Error( "Unexpected error: ${e.message}", e))
+            Response.success(ApiResult.Error( "Unexpected error: ${e.message}"))
         }
     }
 

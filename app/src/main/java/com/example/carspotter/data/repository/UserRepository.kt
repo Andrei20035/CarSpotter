@@ -13,30 +13,26 @@ class UserRepository @Inject constructor(
 ) : BaseRepository(), IUserRepository {
 
     override suspend fun getCurrentUser(): ApiResult<UserDTO> {
-        return userApi.getCurrentUser()
+        return safeApiCall { userApi.getCurrentUser()}
     }
 
     override suspend fun getAllUsers(): ApiResult<List<UserDTO>> {
-        return userApi.getAllUsers()
+        return safeApiCall { userApi.getAllUsers()}
     }
 
     override suspend fun getUsersByUsername(username: String): ApiResult<List<UserDTO>> {
-        return userApi.getUsersByUsername(username)
+        return safeApiCall { userApi.getUsersByUsername(username)}
     }
 
     override suspend fun createUser(request: CreateUserRequest): ApiResult<CreateUserResponse> {
-        return userApi.createUser(request)
+        return safeApiCall { userApi.createUser(request)}
     }
 
     override suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<Unit> {
-        return userApi.updateProfilePicture(request)
+        return safeApiCall { userApi.updateProfilePicture(request)}
     }
 
     override suspend fun deleteCurrentUser(): ApiResult<Unit> {
-        return userApi.deleteCurrentUser()
-    }
-
-    override suspend fun getUploadUrl(request: UploadImageRequest): ApiResult<UploadUrlResponse> {
-        return userApi.getUploadUrl(request)
+        return safeApiCall { userApi.deleteCurrentUser()}
     }
 }

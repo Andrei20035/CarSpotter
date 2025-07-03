@@ -5,6 +5,7 @@ import com.example.carspotter.data.remote.model.user_car.UserCarDTO
 import com.example.carspotter.data.remote.model.user_car.UserCarRequest
 import com.example.carspotter.data.remote.model.user_car.UserCarUpdateRequest
 import com.example.carspotter.utils.ApiResult
+import retrofit2.Response
 import retrofit2.http.*
 
 interface UserCarApi {
@@ -12,31 +13,31 @@ interface UserCarApi {
     @POST("user-cars")
     suspend fun createUserCar(
         @Body userCarRequest: UserCarRequest
-    ): ApiResult<Unit>
+    ): Response<Unit>
 
     @GET("user-cars/{userCarId}")
     suspend fun getUserCarById(
         @Path("userCarId") userCarId: Int
-    ): ApiResult<UserCarDTO>
+    ): Response<UserCarDTO>
 
     @GET("user-cars/by-user/{userId}")
     suspend fun getUserCarByUserId(
         @Path("userId") userId: Int
-    ): ApiResult<UserCarDTO>
+    ): Response<UserCarDTO>
 
     @GET("user-cars/{userCarId}/user")
     suspend fun getUserByUserCarId(
         @Path("userCarId") userCarId: Int
-    ): ApiResult<UserDTO>
+    ): Response<UserDTO>
 
     @PUT("user-cars")
     suspend fun updateUserCar(
         @Body userCarUpdateRequest: UserCarUpdateRequest
-    ): ApiResult<Unit>
+    ): Response<Unit>
 
     @DELETE("user-cars")
-    suspend fun deleteUserCar(): ApiResult<Unit>
+    suspend fun deleteUserCar(): Response<Unit>
 
     @GET("user-cars")
-    suspend fun getAllUserCars(): ApiResult<List<UserCarDTO>>
+    suspend fun getAllUserCars(): Response<List<UserCarDTO>>
 }

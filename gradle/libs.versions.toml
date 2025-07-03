@@ -1,5 +1,5 @@
 [versions]
-agp = "8.10.1"
+agp = "8.11.0"
 firebaseBom = "33.16.0"
 firebase-analytics = "22.5.0"
 kotlin = "2.0.21"
@@ -26,6 +26,7 @@ serialization = "1.8.1"
 kotlin-serialization = "2.1.20"
 coil = "3.2.0"
 firebaseCrashlyticsBuildtools = "3.0.4"
+serialization-converter = "3.0.0"
 
 
 [libraries]
@@ -60,6 +61,7 @@ play-services-auth = { group = "com.google.android.gms", name = "play-services-a
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization"}
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil"}
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
+serialization-converter = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "serialization-converter"}
 
 
 [plugins]

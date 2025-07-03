@@ -16,27 +16,27 @@ class PostRepository @Inject constructor(
 ) : BaseRepository(), IPostRepository {
 
     override suspend fun createPost(postRequest: PostRequest): ApiResult<Unit> {
-        return postApi.createPost(postRequest)
+        return safeApiCall { postApi.createPost(postRequest) }
     }
 
     override suspend fun getPostById(postId: Int): ApiResult<PostDTO> {
-        return postApi.getPostById(postId)
+        return safeApiCall { postApi.getPostById(postId)}
     }
 
     override suspend fun getAllPosts(): ApiResult<List<PostDTO>> {
-        return postApi.getAllPosts()
+        return safeApiCall { postApi.getAllPosts()}
     }
 
     override suspend fun getCurrentDayPostsForUser(): ApiResult<List<PostDTO>> {
         val timeZone = TimeZone.getDefault().id
-        return postApi.getCurrentDayPostsForUser(timeZone)
+        return safeApiCall { postApi.getCurrentDayPostsForUser(timeZone)}
     }
 
     override suspend fun editPost(postId: Int, request: PostEditRequest): ApiResult<Unit> {
-        return postApi.editPost(postId, request)
+        return safeApiCall { postApi.editPost(postId, request)}
     }
 
     override suspend fun deletePost(postId: Int): ApiResult<Unit> {
-        return postApi.deletePost(postId)
+        return safeApiCall { postApi.deletePost(postId)}
     }
 }

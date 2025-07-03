@@ -1,12 +1,15 @@
 package com.example.carspotter.ui.screens.profile_customization
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -19,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.carspotter.ui.navigation.Screen
 import com.example.carspotter.ui.screens.login.ScreenBackground
 import java.io.IOException
 
@@ -32,6 +36,20 @@ fun CarInfoStep(
 
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.isUserCreated) {
+        if (uiState.isUserCreated) {
+            navController.navigate(Screen.Feed.route) {
+                popUpTo(Screen.ProfileCustomization.route) { inclusive = true }
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         ScreenBackground {
             CarInfoForm(
@@ -44,7 +62,10 @@ fun CarInfoStep(
                         is ProfileCustomizationAction.Complete ->  {
                             val profileImageBytes = uriToByteArray(uiState.profilePicture, context)
                             val carImageBytes = uriToByteArray(uiState.carPicture, context)
-                            viewModel.completeProfileSetup(profileImageBytes, carImageBytes)
+                            val profileImageMime = (uiState.profilePicture as? ImageSource.Local)?.mimeType
+                            val carImageMime = (uiState.carPicture as? ImageSource.Local)?.mimeType
+                            viewModel.completeProfileSetup(profileImageBytes, profileImageMime, carImageBytes, carImageMime
+                            )
                         }
                         is ProfileCustomizationAction.PreviousStep -> viewModel.previousStep()
                         else -> {}
@@ -83,12 +104,14 @@ private fun CarInfoForm(
                 picture = uiState.carPicture,
                 text = "You car picture",
                 onImageSelected = { uri ->
-                    onAction(ProfileCustomizationAction.UpdateCarImage(ImageSource.Local(uri)))
+                    val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                    onAction(ProfileCustomizationAction.UpdateCarImage(ImageSource.Local(uri, mimeType)))
                 },
                 onBackPress = { onAction(ProfileCustomizationAction.PreviousStep) }
             )
-
+            Spacer(Modifier.height(32.dp))
             DropdownField(
+                modifier = Modifier.padding(bottom = 16.dp),
                 selectedItem = uiState.selectedBrand,
                 items = uiState.allBrands,
                 label = "Brand",
@@ -103,6 +126,15 @@ private fun CarInfoForm(
                 onItemSelected = { model ->
                     onAction(ProfileCustomizationAction.UpdateCarModel(model))
                 }
+            )
+            Spacer(Modifier.weight(1f))
+            NextStepButton(
+                text = "Next",
+                onClick = { onAction(ProfileCustomizationAction.Complete) },
+            )
+            Spacer(Modifier.height(8.dp))
+            SkipCarInfoText(
+                onClick = { onAction(ProfileCustomizationAction.NextStep) },
             )
 
         }

@@ -12,22 +12,22 @@ class FriendRequestRepository @Inject constructor(
 ) : BaseRepository() {
 
     suspend fun getAllFriendRequests(): ApiResult<List<FriendRequestDTO>> {
-        return friendRequestApi.getAllFriendRequests()
+        return safeApiCall { friendRequestApi.getAllFriendRequests()}
     }
 
     suspend fun getAllFriendRequestsAdmin(): ApiResult<List<FriendRequestDTO>> {
-        return friendRequestApi.getAllFriendRequestsAdmin()
+        return safeApiCall { friendRequestApi.getAllFriendRequestsAdmin()}
     }
 
     suspend fun sendFriendRequest(receiverId: Int): ApiResult<Unit> {
-        return friendRequestApi.sendFriendRequest(receiverId)
+        return safeApiCall { friendRequestApi.sendFriendRequest(receiverId)}
     }
 
     suspend fun acceptFriendRequest(senderId: Int): ApiResult<Unit> {
-        return friendRequestApi.acceptFriendRequest(senderId)
+        return safeApiCall { friendRequestApi.acceptFriendRequest(senderId)}
     }
 
     suspend fun declineFriendRequest(senderId: Int): ApiResult<Unit> {
-        return friendRequestApi.declineFriendRequest(senderId)
+        return safeApiCall { friendRequestApi.declineFriendRequest(senderId)}
     }
 }

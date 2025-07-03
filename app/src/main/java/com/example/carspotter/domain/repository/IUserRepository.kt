@@ -10,5 +10,4 @@ interface IUserRepository {
     suspend fun createUser(request: CreateUserRequest): ApiResult<CreateUserResponse>
     suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<Unit>
     suspend fun deleteCurrentUser(): ApiResult<Unit>
-    suspend fun getUploadUrl(request: UploadImageRequest): ApiResult<UploadUrlResponse>
 }

@@ -48,9 +48,15 @@ fun LoginScreen(
 
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) {
-            navController.navigate(Screen.Home.route) {
+            navController.navigate(Screen.ProfileCustomization.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
         }
     }
 
@@ -310,7 +316,6 @@ private fun LoginActions(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
         onGoogleSignIn = { idToken, email ->
-            Log.d("TOKEN_ID", "Token received in GoogleSignInHandler: $idToken")
             onAction(LoginAction.EmailChanged(email))
             onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
         }
@@ -367,10 +372,7 @@ private fun GoogleSignInHandler(
             val idToken = account.idToken
             val email = account.email
             onGoogleSignIn(idToken, email)
-            Log.d("GOOGLE_SIGN_IN", "Web Client ID: ${BuildConfig.WEB_CLIENT_ID}")
-            Log.d("GOOGLE_TOKEN_ID", "idToken: $idToken")
         } catch (e: ApiException) {
-            Log.e("GOOGLE_SIGN_IN", "Sign-in failed", e)
             onGoogleSignIn(null, null)
         }
     }
