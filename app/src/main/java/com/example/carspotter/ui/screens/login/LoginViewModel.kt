@@ -69,17 +69,13 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login(googleIdToken: String? = null) {
-        val email = uiState.value.email ?: return
+        val email = uiState.value.email
         val password = uiState.value.password
         val tokenToUse = googleIdToken ?: uiState.value.googleIdToken
         val provider = uiState.value.provider
 
-        Log.d("UI_STATE", Gson().toJson(uiState.value))
-
         when (provider) {
             AuthProvider.REGULAR -> {
-                Log.d("PROVIDER FOR REGULAR LOGIN", "Provider: ${provider}")
-                Log.d("CREDENTIALS", "Credentials for login: ${email},  ${password}, ${tokenToUse}, ${provider}")
                 if (!isValidEmail(email)) {
                     setError("Email is invalid")
                     return
@@ -89,14 +85,12 @@ class LoginViewModel @Inject constructor(
                     return
                 }
                 if (!isValidPassword(password)) {
-                    setError("Password needs 10+ chars, 1 uppercase & special char")
+                    setError("Password must be at least 8 characters long and include an uppercase letter and a special character.")
                     return
                 }
             }
 
             AuthProvider.GOOGLE -> {
-                println("GoogleId " + tokenToUse)
-
                 if (tokenToUse.isNullOrBlank()) {
                     setError("An error occurred: missing Google ID")
                     return
@@ -108,7 +102,7 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             when (val result = authRepository.login(
-                email = email,
+                email = email!!,
                 password = password,
                 googleIdToken = googleIdToken,
                 provider = provider
@@ -167,7 +161,10 @@ class LoginViewModel @Inject constructor(
     }
 
 
-    private fun isValidEmail(email: String): Boolean {
+    private fun isValidEmail(email: String?): Boolean {
+        if(email.isNullOrBlank()) {
+            return false
+        }
         val emailRegex = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
         return emailRegex.matches(email)
     }

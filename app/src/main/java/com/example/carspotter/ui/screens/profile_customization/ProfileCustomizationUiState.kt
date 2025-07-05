@@ -29,7 +29,7 @@ data class ProfileCustomizationUiState(
     val isFetchingBrands: Boolean = false,
     val isFetchingModels: Boolean = false,
 
-    val currentStep: ProfileStep = ProfileStep.Personal, // TODO: Modify in production
+    val currentStep: ProfileStep = ProfileStep.Car, // TODO: Modify in production
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isUserCreated: Boolean = false

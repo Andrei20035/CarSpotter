@@ -16,7 +16,7 @@ interface PostApi {
 
     @GET("posts/{postId}")
     suspend fun getPostById(
-        @Path("postId") postId: Int
+        @Path("postId") postId: UUID
     ): Response<PostDTO>
 
     @GET("posts")
@@ -29,12 +29,12 @@ interface PostApi {
 
     @PUT("posts/{postId}")
     suspend fun editPost(
-        @Path("postId") postId: Int,
+        @Path("postId") postId: UUID,
         @Body request: PostEditRequest
     ): Response<Unit>
 
     @DELETE("posts/{postId}")
     suspend fun deletePost(
-        @Path("postId") postId: Int
+        @Path("postId") postId: UUID
     ): Response<Unit>
 }

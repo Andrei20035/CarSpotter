@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +23,7 @@ class UserPreferences @Inject constructor(
     companion object {
         val ONBOARDING_KEY = booleanPreferencesKey("onboarding_completed")
         val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
-        val USER_ID_KEY = intPreferencesKey("user_id")
+        val USER_ID_KEY = stringPreferencesKey("user_id")
         val USERNAME_KEY = stringPreferencesKey("username")
         val EMAIL_KEY = stringPreferencesKey("email")
     }
@@ -33,8 +34,10 @@ class UserPreferences @Inject constructor(
     val authToken: Flow<String?> = context.dataStore.data
         .map { it[JWT_TOKEN_KEY] }
 
-    val userId: Flow<Int?> = context.dataStore.data
-        .map { it[USER_ID_KEY] }
+    val userId: Flow<UUID?> = context.dataStore.data
+        .map { preferences ->
+            preferences[USER_ID_KEY]?.let { UUID.fromString(it) }
+        }
 
     val username: Flow<String?> = context.dataStore.data
         .map { it[USERNAME_KEY] }
@@ -50,8 +53,8 @@ class UserPreferences @Inject constructor(
         context.dataStore.edit { it[JWT_TOKEN_KEY] = token }
     }
 
-    suspend fun saveUserId(id: Int) {
-        context.dataStore.edit { it[USER_ID_KEY] = id }
+    suspend fun saveUserId(uuid: UUID) {
+        context.dataStore.edit { it[USER_ID_KEY] = uuid.toString() }
     }
 
     suspend fun saveUsername(name: String) {

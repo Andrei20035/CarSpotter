@@ -6,6 +6,7 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import java.util.UUID
 
 interface CarModelApi {
     @GET("car-models")
@@ -13,7 +14,7 @@ interface CarModelApi {
 
     @GET("car-models/{modelId}")
     suspend fun getCarModelById(
-        @Path("modelId") modelId: Int
+        @Path("modelId") modelId: UUID
     ): Response<CarModelDTO>
 
     @GET("car-models/id")

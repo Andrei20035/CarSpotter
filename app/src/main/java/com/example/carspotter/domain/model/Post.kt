@@ -1,13 +1,29 @@
 package com.example.carspotter.domain.model
 
+import com.example.carspotter.data.remote.model.post.PostDTO
 import java.time.Instant
+import java.util.UUID
 
 data class Post(
-    val id: Int = 0,
-    val userId: Int,
-    val carModelId: Int,
+    val id: UUID,
+    val userId: UUID,
+    val carModelId: UUID,
     val imagePath: String,
     val description: String? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 )
+
+fun PostDTO.toDomain(): Post = Post(
+    id = id,
+    userId = userId,
+    carModelId = carModelId,
+    imagePath = imagePath,
+    description = description ?: "",
+    createdAt = createdAt ?: Instant.now(),
+    updatedAt = updatedAt ?: Instant.now()
+)
+
+fun List<PostDTO>.toDomain(): List<Post> {
+    return map { it.toDomain() }
+}

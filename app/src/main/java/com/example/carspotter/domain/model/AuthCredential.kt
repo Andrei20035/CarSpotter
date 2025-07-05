@@ -1,7 +1,9 @@
 package com.example.carspotter.domain.model
 
+import java.util.UUID
+
 data class AuthCredential(
-    val id: Int = 0,
+    val id: UUID,
     val email: String,
     val password: String?,
     val provider: AuthProvider,

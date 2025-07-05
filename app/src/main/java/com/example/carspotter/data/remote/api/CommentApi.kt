@@ -4,12 +4,13 @@ import com.example.carspotter.data.remote.model.comment.CommentDTO
 import com.example.carspotter.data.remote.model.comment.CommentRequest
 import retrofit2.Response
 import retrofit2.http.*
+import java.util.UUID
 
 interface CommentApi {
 
     @GET("comments/{postId}")
     suspend fun getCommentsForPost(
-        @Path("postId") postId: Int
+        @Path("postId") postId: UUID
     ): Response<List<CommentDTO>>
 
     @POST("comments")
@@ -19,6 +20,6 @@ interface CommentApi {
 
     @DELETE("comments/{commentId}")
     suspend fun deleteComment(
-        @Path("commentId") commentId: Int
+        @Path("commentId") commentId: UUID
     ): Response<Unit>
 }

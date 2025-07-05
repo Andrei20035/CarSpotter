@@ -1,7 +1,6 @@
 package com.example.carspotter.ui.screens.login
 
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -29,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.carspotter.BuildConfig
 import com.example.carspotter.domain.model.AuthProvider
+import com.example.carspotter.ui.components.CustomSnackbar
 import com.example.carspotter.ui.components.GradientText
 import com.example.carspotter.ui.navigation.Screen
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -45,6 +45,13 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) {
@@ -54,66 +61,74 @@ fun LoginScreen(
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        if (uiState.errorMessage != null) {
-            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
-        }
-    }
-
-    Box(modifier= Modifier.fillMaxSize()) {
-        ScreenBackground {
-            LoginHeader()
-            LoginCard(
-                uiState = uiState,
-                onAction = { action ->
-                    when (action) {
-                        is LoginAction.EmailChanged -> viewModel.updateEmail(action.email)
-                        is LoginAction.PasswordChanged -> viewModel.updatePassword(action.password)
-                        is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
-                        is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
-                        is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
-                        is LoginAction.Login -> {
-                            viewModel.setProviderAndToken(action.googleId, action.provider)
-                            Log.d(
-                                "GOOGLE_ID and PROVIDER",
-                                "googleId: ${uiState.googleIdToken}, provider: ${uiState.provider}"
-                            )
-                            viewModel.login(action.googleId)
-                        }
-
-                        is LoginAction.SignUp -> {
-                            viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
-                            viewModel.signUp()
-                        }
-
-                        is LoginAction.ForgotPassword -> viewModel.forgotPassword()
-                        is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
-                        is LoginAction.ResetOnboarding -> {
-                            viewModel.resetOnboardingStatus {
-                                navController.navigate(Screen.Onboarding.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                }
-                            }
-                        }
-                        is LoginAction.SetAuthenticatedTrue -> viewModel.setAuthenticatedTrue()
-                    }
-                }
-            )
-        }
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .clickable(enabled = false) { },
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary
-                )
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                CustomSnackbar(data.visuals.message)
             }
         }
+    ) { padding ->
+        Log.d("PADDING", padding.toString())
+            Box(modifier= Modifier
+                .fillMaxSize()
+                .padding(padding)
+            ) {
+                ScreenBackground {
+                    LoginHeader()
+                    LoginCard(
+                        uiState = uiState,
+                        onAction = { action ->
+                            when (action) {
+                                is LoginAction.EmailChanged -> viewModel.updateEmail(action.email)
+                                is LoginAction.PasswordChanged -> viewModel.updatePassword(action.password)
+                                is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
+                                is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
+                                is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
+                                is LoginAction.Login -> {
+                                    viewModel.setProviderAndToken(action.googleId, action.provider)
+                                    Log.d(
+                                        "GOOGLE_ID and PROVIDER",
+                                        "googleId: ${uiState.googleIdToken}, provider: ${uiState.provider}"
+                                    )
+                                    viewModel.login(action.googleId)
+                                }
+
+                                is LoginAction.SignUp -> {
+                                    viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
+                                    viewModel.signUp()
+                                }
+
+                                is LoginAction.ForgotPassword -> viewModel.forgotPassword()
+                                is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
+                                is LoginAction.ResetOnboarding -> {
+                                    viewModel.resetOnboardingStatus {
+                                        navController.navigate(Screen.Onboarding.route) {
+                                            popUpTo(Screen.Login.route) { inclusive = true }
+                                        }
+                                    }
+                                }
+                                is LoginAction.SetAuthenticatedTrue -> viewModel.setAuthenticatedTrue()
+                            }
+                        }
+                    )
+                }
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable(enabled = false) { },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
     }
+
 }
 
 @Composable
@@ -146,7 +161,7 @@ fun ScreenBackground(
 
 @Composable
 private fun LoginHeader() {
-    Spacer(modifier = Modifier.height(80.dp))
+    Spacer(modifier = Modifier.height(45.dp))
 
     GradientText(
         text = "CarSpotter",
@@ -282,14 +297,6 @@ private fun LoginForm(
         )
     }
 
-    val context = LocalContext.current
-
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
-    }
-
     if (!uiState.isLoginMode) {
         Spacer(modifier = Modifier.height(16.dp))
     }
@@ -348,7 +355,7 @@ private fun LoginFooter(
 private fun GoogleSignInHandler(
     text: String,
     isLoading: Boolean,
-    onGoogleSignIn: (String?, email: String?) -> Unit
+    onGoogleSignIn: (String?, String?) -> Unit
 ) {
     val context = LocalContext.current
 

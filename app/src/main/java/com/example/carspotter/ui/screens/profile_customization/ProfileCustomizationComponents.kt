@@ -5,6 +5,14 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -158,14 +167,12 @@ fun PictureContainer(
 }
 
 @Composable
-fun DropdownField(
+fun DropdownFieldWithoutOverlay(
     selectedItem: String,
-    items: List<String>,
     label: String,
-    onItemSelected: (String) -> Unit,
+    onDropdownToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
 
     Column(modifier = modifier) {
@@ -179,16 +186,13 @@ fun DropdownField(
                 .padding(bottom = 8.dp, start = 8.dp)
         )
 
-        Box(modifier = Modifier
-            .height(55.dp),
-        ) {
+        Box(modifier = Modifier.height(55.dp)) {
             OutlinedTextField(
                 value = selectedItem,
                 onValueChange = {},
                 readOnly = true,
                 interactionSource = interactionSource,
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
@@ -200,8 +204,7 @@ fun DropdownField(
                     Image(
                         painter = painterResource(id = R.drawable.arrow_drop_down_circle_24px),
                         contentDescription = "Drop down",
-                        modifier = Modifier
-                            .size(24.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 singleLine = true,
@@ -214,74 +217,99 @@ fun DropdownField(
         }
     }
 
-    // Toggle dropdown expansion when the TextField is clicked
+    // Handle tap to toggle dropdown
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
             if (interaction is PressInteraction.Press) {
-                expanded = !expanded
+                onDropdownToggle()
             }
         }
     }
+}
 
-    if (expanded) {
-        Popup(
-            onDismissRequest = { expanded = false },
-            properties = PopupProperties(
-                focusable = true,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true
-            )
+@Composable
+fun DropdownOverlay(
+    visible: Boolean,
+    items: List<String>,
+    onItemSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val itemHeight = 56.dp
+    val maxVisibleItems = 10
+    val listHeight = if (items.size > maxVisibleItems) {
+        itemHeight * maxVisibleItems
+    } else {
+        itemHeight * items.size
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(200)) +
+                scaleIn(
+                    initialScale = 0.8f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                ),
+        exit = fadeOut(animationSpec = tween(200)) +
+                scaleOut(
+                    targetScale = 0.8f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(200, easing = FastOutLinearInEasing)
+                ),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(1000f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { onDismiss() }
         ) {
-            Box(
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f))
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { expanded = false }
+                    .fillMaxWidth()
+                    .height(listHeight)
+                    .align(Alignment.Center),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Card(
+                LazyColumn(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.4f)
-                        .align(Alignment.Center)
-                        .padding(horizontal = 16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
+                        .fillMaxSize()
+                        .heightIn(max = itemHeight * maxVisibleItems)
+                        .padding(horizontal = 8.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 8.dp)
-                    ) {
-                        items(items) { item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onItemSelected(item)
-                                        expanded = false
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = item,
-                                    fontSize = 16.sp,
-                                    color = Color.Black,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            Divider(color = Color.Gray.copy(alpha = 0.1f), thickness = 0.5.dp)
-                        }
+                    items(items) { item ->
+                        DropdownItem(item, onItemSelected)
                     }
                 }
             }
         }
     }
 }
+
+@Composable
+fun DropdownItem(item: String, onItemSelected: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onItemSelected(item) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = item,
+            fontSize = 16.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Medium
+        )
+    }
+    Divider(color = Color.Gray.copy(alpha = 0.1f), thickness = 0.5.dp)
+}
+
 
 @Composable
 fun LabeledTextField(
@@ -627,7 +655,7 @@ fun SkipCarInfoText(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onClick(ProfileCustomizationAction.NextStep)
+                onClick(ProfileCustomizationAction.Complete)
             }),
         textAlign = TextAlign.Center
     )

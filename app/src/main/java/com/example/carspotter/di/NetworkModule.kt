@@ -75,7 +75,7 @@ object NetworkModule {
         networkConnectivityInterceptor: NetworkConnectivityInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(networkConnectivityInterceptor) // Add this first to check connectivity before other interceptors
+            .addInterceptor(networkConnectivityInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)

@@ -13,7 +13,7 @@ import com.example.carspotter.ui.screens.profile_customization.ProfileCustomizat
 fun CarSpotterNavigation(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Onboarding.route
+        startDestination = Screen.ProfileCustomization.route
     ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(

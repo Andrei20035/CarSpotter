@@ -12,19 +12,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.carspotter.ui.components.CustomSnackbar
 import com.example.carspotter.ui.navigation.Screen
 import com.example.carspotter.ui.screens.login.ScreenBackground
 import java.io.IOException
+import kotlin.toString
 
 @Composable
 fun CarInfoStep(
@@ -33,6 +41,15 @@ fun CarInfoStep(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
+        }
+    }
+
 
     val context = LocalContext.current
 
@@ -44,34 +61,54 @@ fun CarInfoStep(
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        if (uiState.errorMessage != null) {
-            Log.d("ERROR MESSAGE", uiState.errorMessage.toString())
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                CustomSnackbar(data.visuals.message)
+            }
         }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        ScreenBackground {
-            CarInfoForm(
-                uiState = uiState,
-                onAction = { action ->
-                    when(action) {
-                        is ProfileCustomizationAction.UpdateCarImage -> viewModel.updateCarImage(action.imageSource)
-                        is ProfileCustomizationAction.UpdateCarBrand -> viewModel.updateCarBrand(action.brand)
-                        is ProfileCustomizationAction.UpdateCarModel -> viewModel.updateCarModel(action.model)
-                        is ProfileCustomizationAction.Complete ->  {
-                            val profileImageBytes = uriToByteArray(uiState.profilePicture, context)
-                            val carImageBytes = uriToByteArray(uiState.carPicture, context)
-                            val profileImageMime = (uiState.profilePicture as? ImageSource.Local)?.mimeType
-                            val carImageMime = (uiState.carPicture as? ImageSource.Local)?.mimeType
-                            viewModel.completeProfileSetup(profileImageBytes, profileImageMime, carImageBytes, carImageMime
+    ) { padding ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            ScreenBackground {
+                CarInfoForm(
+                    uiState = uiState,
+                    onAction = { action ->
+                        when (action) {
+                            is ProfileCustomizationAction.UpdateCarImage -> viewModel.updateCarImage(
+                                action.imageSource
                             )
+
+                            is ProfileCustomizationAction.UpdateCarBrand -> viewModel.updateCarBrand(
+                                action.brand
+                            )
+
+                            is ProfileCustomizationAction.UpdateCarModel -> viewModel.updateCarModel(
+                                action.model
+                            )
+
+                            is ProfileCustomizationAction.Complete -> {
+                                val profileImageBytes =
+                                    uriToByteArray(uiState.profilePicture, context)
+                                val carImageBytes = uriToByteArray(uiState.carPicture, context)
+                                val profileImageMime =
+                                    (uiState.profilePicture as? ImageSource.Local)?.mimeType
+                                val carImageMime =
+                                    (uiState.carPicture as? ImageSource.Local)?.mimeType
+                                viewModel.completeProfileSetup(
+                                    profileImageBytes, profileImageMime, carImageBytes, carImageMime
+                                )
+                            }
+
+                            is ProfileCustomizationAction.PreviousStep -> viewModel.previousStep()
+                            else -> {}
                         }
-                        is ProfileCustomizationAction.PreviousStep -> viewModel.previousStep()
-                        else -> {}
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -82,17 +119,13 @@ private fun CarInfoForm(
     onAction: (ProfileCustomizationAction) -> Unit,
 ) {
     val context = LocalContext.current
-
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
-    }
+    var brandDropdownExpanded by remember { mutableStateOf(false) }
+    var modelDropdownExpanded by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(vertical = 50.dp, horizontal = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 30.dp),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -110,21 +143,24 @@ private fun CarInfoForm(
                 onBackPress = { onAction(ProfileCustomizationAction.PreviousStep) }
             )
             Spacer(Modifier.height(32.dp))
-            DropdownField(
+            DropdownFieldWithoutOverlay(
                 modifier = Modifier.padding(bottom = 16.dp),
                 selectedItem = uiState.selectedBrand,
-                items = uiState.allBrands,
                 label = "Brand",
-                onItemSelected = { brand ->
-                    onAction(ProfileCustomizationAction.UpdateCarBrand(brand))
+                onDropdownToggle = {
+                    brandDropdownExpanded = !brandDropdownExpanded
+                    Log.d("brandDropdownExpanded", brandDropdownExpanded.toString())
+                    if (brandDropdownExpanded) modelDropdownExpanded = false
                 }
             )
-            DropdownField(
+            DropdownFieldWithoutOverlay(
                 selectedItem = uiState.selectedModel,
-                items = uiState.modelsForSelectedBrand,
                 label = "Model",
-                onItemSelected = { model ->
-                    onAction(ProfileCustomizationAction.UpdateCarModel(model))
+                onDropdownToggle = {
+                    modelDropdownExpanded = !modelDropdownExpanded
+                    Log.d("modelDropdownExpanded", modelDropdownExpanded.toString())
+                    // Close brand dropdown if model is opened
+                    if (modelDropdownExpanded) brandDropdownExpanded = false
                 }
             )
             Spacer(Modifier.weight(1f))
@@ -134,22 +170,32 @@ private fun CarInfoForm(
             )
             Spacer(Modifier.height(8.dp))
             SkipCarInfoText(
-                onClick = { onAction(ProfileCustomizationAction.NextStep) },
+                onClick = { onAction(ProfileCustomizationAction.Complete) },
             )
 
         }
 
-        if (uiState.isFetchingBrands || uiState.isFetchingModels) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
+        DropdownOverlay(
+            visible = brandDropdownExpanded,
+            items = uiState.allBrands,
+            onItemSelected = { brand ->
+                onAction(ProfileCustomizationAction.UpdateCarBrand(brand))
+                brandDropdownExpanded = false
+            },
+            onDismiss = { brandDropdownExpanded = false }
+        )
+
+        DropdownOverlay(
+            visible = modelDropdownExpanded,
+            items = uiState.modelsForSelectedBrand,
+            onItemSelected = { model ->
+                onAction(ProfileCustomizationAction.UpdateCarModel(model))
+                modelDropdownExpanded = false
+            },
+            onDismiss = { modelDropdownExpanded = false }
+        )
     }
+
 }
 
 fun uriToByteArray(imageSource: ImageSource?, context: Context): ByteArray? {

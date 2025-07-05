@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -128,6 +129,7 @@ class ProfileCustomizationViewModel @Inject constructor(
             }
 
             ProfileStep.Car -> {
+
             }
         }
     }
@@ -184,7 +186,7 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createUserProfile(): Int? {
+    private suspend fun createUserProfile(): UUID? {
         val createUserRequest = CreateUserRequest(
             fullName = _uiState.value.fullName,
             birthDate = _uiState.value.birthDate!!,
@@ -206,7 +208,7 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createUserCarIfNeeded(userId: Int): Int? {
+    private suspend fun createUserCarIfNeeded(userId: UUID): UUID? {
         val brand = _uiState.value.selectedBrand
         val model = _uiState.value.selectedModel
 
@@ -241,8 +243,8 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
     private suspend fun uploadImagesIfNeeded(
-        carModelId: Int?,
-        userId: Int,
+        carModelId: UUID?,
+        userId: UUID,
         profileImageBytes: ByteArray?,
         profileImageMime: String,
         carImageBytes: ByteArray?,
@@ -296,7 +298,6 @@ class ProfileCustomizationViewModel @Inject constructor(
         val state = _uiState.value
         return state.fullName.isNotBlank() &&
                 state.username.isNotBlank() &&
-                state.country.isNotBlank() &&
                 state.birthDate != null
     }
 
