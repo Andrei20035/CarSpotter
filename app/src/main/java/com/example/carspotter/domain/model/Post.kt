@@ -10,6 +10,8 @@ data class Post(
     val carModelId: UUID,
     val imagePath: String,
     val description: String? = null,
+    val latitude: Double,
+    val longitude: Double,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 )
@@ -20,6 +22,8 @@ fun PostDTO.toDomain(): Post = Post(
     carModelId = carModelId,
     imagePath = imagePath,
     description = description ?: "",
+    latitude = latitude,
+    longitude = longitude,
     createdAt = createdAt ?: Instant.now(),
     updatedAt = updatedAt ?: Instant.now()
 )

@@ -44,10 +44,10 @@ class FeedViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingFeed = true) }
 
-            when(val result = postRepository.getFeedPosts()) {
-                is ApiResult.Success -> _uiState.update { it.copy(feedPosts = result.data) }
-                is ApiResult.Error -> setError(result.message)
-            }
+//            when(val result = postRepository.getFeedPosts()) {
+//                is ApiResult.Success -> _uiState.update { it.copy(feedPosts = result.data) }
+//                is ApiResult.Error -> setError(result.message)
+//            }
             _uiState.update { it.copy(isLoadingFeed = false) }
         }
     }
