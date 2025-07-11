@@ -1,5 +1,8 @@
 package com.example.carspotter.domain.repository
 
+import com.example.carspotter.data.remote.model.post.FeedRequest
+import com.example.carspotter.data.remote.model.post.FeedResponse
+import com.example.carspotter.data.remote.model.post.FeedResult
 import com.example.carspotter.data.remote.model.post.PostDTO
 import com.example.carspotter.data.remote.model.post.PostEditRequest
 import com.example.carspotter.data.remote.model.post.PostRequest
@@ -14,4 +17,5 @@ interface IPostRepository {
     suspend fun getCurrentDayPostsForUser(): ApiResult<List<Post>>
     suspend fun editPost(postId: UUID, request: PostEditRequest): ApiResult<Unit>
     suspend fun deletePost(postId: UUID): ApiResult<Unit>
+    suspend fun getFeedPosts(feedRequest: FeedRequest): ApiResult<FeedResult>
 }

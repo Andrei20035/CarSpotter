@@ -1,5 +1,7 @@
 package com.example.carspotter.data.remote.api
 
+import com.example.carspotter.data.remote.model.post.FeedRequest
+import com.example.carspotter.data.remote.model.post.FeedResponse
 import com.example.carspotter.data.remote.model.post.PostDTO
 import com.example.carspotter.data.remote.model.post.PostEditRequest
 import com.example.carspotter.data.remote.model.post.PostRequest
@@ -37,4 +39,9 @@ interface PostApi {
     suspend fun deletePost(
         @Path("postId") postId: UUID
     ): Response<Unit>
+
+    @GET("posts/feed")
+    suspend fun getFeedPosts(
+        @Body request: FeedRequest
+    ): Response<FeedResponse>
 }

@@ -1,9 +1,13 @@
 package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.remote.api.PostApi
+import com.example.carspotter.data.remote.model.post.FeedRequest
+import com.example.carspotter.data.remote.model.post.FeedResponse
+import com.example.carspotter.data.remote.model.post.FeedResult
 import com.example.carspotter.data.remote.model.post.PostDTO
 import com.example.carspotter.data.remote.model.post.PostEditRequest
 import com.example.carspotter.data.remote.model.post.PostRequest
+import com.example.carspotter.data.remote.model.post.toDomain
 import com.example.carspotter.domain.model.Post
 import com.example.carspotter.domain.model.toDomain
 import com.example.carspotter.domain.repository.IPostRepository
@@ -49,5 +53,12 @@ class PostRepository @Inject constructor(
 
     override suspend fun deletePost(postId: UUID): ApiResult<Unit> {
         return safeApiCall { postApi.deletePost(postId)}
+    }
+
+    override suspend fun getFeedPosts(feedRequest: FeedRequest): ApiResult<FeedResult> {
+        return when(val result = safeApiCall { postApi.getFeedPosts(feedRequest) }) {
+            is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
+            is ApiResult.Error -> ApiResult.Error(result.message)
+        }
     }
 }

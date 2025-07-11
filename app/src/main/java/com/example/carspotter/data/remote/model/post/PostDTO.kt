@@ -1,5 +1,6 @@
 package com.example.carspotter.data.remote.model.post
 
+import com.example.carspotter.domain.model.Post
 import com.example.carspotter.serialization.InstantSerializer
 import com.example.carspotter.serialization.UUIDSerializer
 import kotlinx.serialization.Serializable
