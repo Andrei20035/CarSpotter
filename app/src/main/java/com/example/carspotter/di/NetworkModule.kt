@@ -4,8 +4,7 @@ import android.util.Log
 import com.example.carspotter.BuildConfig
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.api.*
-import com.example.carspotter.utils.ApiResultCallAdapterFactory
-import com.example.carspotter.utils.NetworkConnectivityInterceptor
+import com.example.carspotter.core.network.NetworkConnectivityInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -20,7 +19,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -30,7 +28,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
-    private const val BASE_URL = "http://192.168.1.145:8080/api/"
+    private const val BASE_URL = "http://192.168.0.107:8080/api/"
 
     @Provides
     @Singleton

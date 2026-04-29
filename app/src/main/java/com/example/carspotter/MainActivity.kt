@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.carspotter.ui.theme.CarSpotterTheme
+import com.example.carspotter.core.ui.theme.CarSpotterTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

@@ -1,6 +1,6 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.friend_request.FriendRequestDTO
+import com.example.carspotter.data.model.FriendRequest
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -10,7 +10,7 @@ import java.util.UUID
 interface FriendRequestApi {
 
     @GET("friend-requests/admin")
-    suspend fun getAllFriendRequestsAdmin(): Response<List<FriendRequestDTO>>
+    suspend fun getAllFriendRequestsAdmin(): Response<List<FriendRequest>>
 
     @POST("friend-requests/{receiverId}")
     suspend fun sendFriendRequest(
@@ -28,5 +28,5 @@ interface FriendRequestApi {
     ): Response<Unit>
 
     @GET("friend-requests")
-    suspend fun getAllFriendRequests(): Response<List<FriendRequestDTO>>
+    suspend fun getAllFriendRequests(): Response<List<FriendRequest>>
 }

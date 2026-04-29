@@ -1,7 +1,7 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.car_model.CarModelDTO
-import com.example.carspotter.data.remote.model.car_model.CarModelIdResponse
+import com.example.carspotter.data.model.CarModel
+import com.example.carspotter.data.remote.dto.car_model.CarModelIdResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -10,12 +10,12 @@ import java.util.UUID
 
 interface CarModelApi {
     @GET("car-models")
-    suspend fun getAllCarModels(): Response<List<CarModelDTO>>
+    suspend fun getAllCarModels(): Response<List<CarModel>>
 
     @GET("car-models/{modelId}")
     suspend fun getCarModelById(
         @Path("modelId") modelId: UUID
-    ): Response<CarModelDTO>
+    ): Response<CarModel>
 
     @GET("car-models/id")
     suspend fun getCarModelId(

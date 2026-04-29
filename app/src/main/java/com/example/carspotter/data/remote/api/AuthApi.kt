@@ -1,9 +1,9 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.auth.AuthResponse
-import com.example.carspotter.data.remote.model.auth.LoginRequest
-import com.example.carspotter.data.remote.model.auth.RegisterRequest
-import com.example.carspotter.data.remote.model.auth.UpdatePasswordRequest
+import com.example.carspotter.data.remote.dto.auth.AuthResponse
+import com.example.carspotter.data.remote.dto.auth.LoginRequest
+import com.example.carspotter.data.remote.dto.auth.RegisterRequest
+import com.example.carspotter.data.remote.dto.auth.UpdatePasswordRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

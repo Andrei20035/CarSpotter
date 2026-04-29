@@ -1,0 +1,29 @@
+package com.example.carspotter.data.model
+
+
+import com.example.carspotter.core.network.serialization.InstantSerializer
+import com.example.carspotter.core.network.serialization.LocalDateSerializer
+import com.example.carspotter.core.network.serialization.UUIDSerializer
+import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
+
+
+@Serializable
+data class User(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val profilePicturePath: String? = null,
+    val fullName: String,
+    val phoneNumber: String,
+    @Serializable(with = LocalDateSerializer::class)
+    val birthDate: LocalDate,
+    val username: String,
+    val country: String,
+    val spotScore: Int = 0,
+    @Serializable(with = InstantSerializer::class)
+    val createdAt: Instant? = null,
+    @Serializable(with = InstantSerializer::class)
+    val updatedAt: Instant? = null,
+)

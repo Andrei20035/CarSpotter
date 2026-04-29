@@ -6,7 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.example.carspotter.ui.navigation.CarSpotterNavigation
+import com.example.carspotter.core.navigation.CarSpotterNavigation
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp

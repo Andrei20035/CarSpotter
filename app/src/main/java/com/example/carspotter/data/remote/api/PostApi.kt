@@ -1,10 +1,10 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.remote.model.post.FeedRequest
-import com.example.carspotter.data.remote.model.post.FeedResponse
-import com.example.carspotter.data.remote.model.post.PostDTO
-import com.example.carspotter.data.remote.model.post.PostEditRequest
-import com.example.carspotter.data.remote.model.post.PostRequest
+import com.example.carspotter.data.model.Post
+import com.example.carspotter.data.remote.dto.post.FeedRequest
+import com.example.carspotter.data.remote.dto.post.FeedResponse
+import com.example.carspotter.data.remote.dto.post.PostEditRequest
+import com.example.carspotter.data.remote.dto.post.PostRequest
 import retrofit2.Response
 import retrofit2.http.*
 import java.util.*
@@ -19,15 +19,15 @@ interface PostApi {
     @GET("posts/{postId}")
     suspend fun getPostById(
         @Path("postId") postId: UUID
-    ): Response<PostDTO>
+    ): Response<Post>
 
     @GET("posts")
-    suspend fun getAllPosts(): Response<List<PostDTO>>
+    suspend fun getAllPosts(): Response<List<Post>>
 
     @GET("posts/current-day")
     suspend fun getCurrentDayPostsForUser(
         @Header("Time-Zone") timeZone: String = TimeZone.getDefault().id
-    ): Response<List<PostDTO>>
+    ): Response<List<Post>>
 
     @PUT("posts/{postId}")
     suspend fun editPost(
