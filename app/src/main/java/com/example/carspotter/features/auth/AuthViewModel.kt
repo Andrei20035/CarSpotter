@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.network.ApiResult
+import com.example.carspotter.data.remote.dto.auth.OnboardingStep
 import com.example.carspotter.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -24,14 +25,8 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun updateEmail(email: String?) {
-        _uiState.update {
-            it.copy(
-                email = email,
-                provider = AuthProvider.REGULAR,
-                googleIdToken = null
-            )
-        }
+    fun updateEmail(email: String) {
+        _uiState.update { it.copy(email = email) }
     }
 
     fun updatePassword(password: String) {
@@ -50,211 +45,131 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(isConfirmPasswordVisible = !it.isConfirmPasswordVisible) }
     }
 
-    fun setGoogleAuth(googleIdToken: String) {
-        _uiState.update {
-            it.copy(
-                provider = AuthProvider.GOOGLE,
-                googleIdToken = googleIdToken,
-                errorMessage = null
-            )
-        }
-    }
-
     fun toggleLoginMode() {
         _uiState.update {
             it.copy(
                 isLoginMode = !it.isLoginMode,
-                password = null,
-                confirmPassword = null,
+                password = "",
+                confirmPassword = "",
                 isPasswordVisible = false,
                 isConfirmPasswordVisible = false,
-                errorMessage = null
+                errorMessage = null,
             )
         }
     }
 
-    fun login(googleIdToken: String? = null) {
-        val email = uiState.value.email
-        val password = uiState.value.password
-        val tokenToUse = googleIdToken ?: uiState.value.googleIdToken
-        val provider = uiState.value.provider
+    fun submitEmailAuth() {
+        if (_uiState.value.isLoginMode) loginWithEmail() else registerWithEmail()
+    }
 
-        val requestEmail = if (provider == AuthProvider.GOOGLE) null else email
-        val requestPassword = if (provider == AuthProvider.GOOGLE) null else password
+    private fun loginWithEmail() {
+        val email = _uiState.value.email.trim()
+        val password = _uiState.value.password
 
-
-        when (provider) {
-            AuthProvider.REGULAR -> {
-                if (!isValidEmail(requestEmail)) {
-                    setError("Email is invalid")
-                    return
-                }
-                if (password.isNullOrBlank()) {
-                    setError("Password cannot be empty")
-                    return
-                }
-                if (!isValidPassword(requestPassword)) {
-                    setError("Password must be at least 8 characters long and include an uppercase letter and a special character.")
-                    return
-                }
-            }
-
-            AuthProvider.GOOGLE -> {
-                if (tokenToUse.isNullOrBlank()) {
-                    setError("Missing Google ID token")
-                    return
-                }
-            }
-        }
+        if (email.isBlank()) { setError("Email cannot be empty"); return }
+        if (password.isBlank()) { setError("Password cannot be empty"); return }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            when (val result = authRepository.login(
-                email = requestEmail,
-                password = requestPassword,
-                googleIdToken = tokenToUse,
-                provider = provider
-            )) {
-                is ApiResult.Success ->  {
-                    userPreferences.saveJwtToken(result.data.token)
-                    _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
-                }
-                is ApiResult.Error -> {
-                    setError(result.message)
-                }
-            }
+            val result = authRepository.login(
+                email = email,
+                password = password,
+                googleIdToken = null,
+                provider = AuthProvider.REGULAR
+            )
+            handleAuthResult(result)
         }
     }
 
+    private fun registerWithEmail() {
+        val email = _uiState.value.email.trim()
+        val password = _uiState.value.password
+        val confirm = _uiState.value.confirmPassword
 
-    fun signUp() {
-        val email = uiState.value.email
-        val password = uiState.value.password
-        val confirmPassword = uiState.value.confirmPassword
-
-        if (!validateInputs(email, password, confirmPassword)) return
+        if (email.isBlank()) { setError("Email cannot be empty"); return }
+        if (!isValidEmail(email)) { setError("Invalid email format"); return }
+        if (password.length < 8) { setError("Password must be at least 8 characters"); return }
+        if (password != confirm) { setError("Passwords do not match"); return }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            when (val result = authRepository.register(email, password, null,AuthProvider.REGULAR)) {
-                is ApiResult.Success -> {
-                    userPreferences.saveJwtToken(result.data.token)
-                    _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
-                }
-
-                is ApiResult.Error -> {
-                    setError(result.message)
-                }
-            }
+            val result = authRepository.register(
+                email = email,
+                password = password,
+                googleIdToken = null,
+                provider = AuthProvider.REGULAR
+            )
+            handleAuthResult(result)
         }
     }
 
-
-    fun forgotPassword() {
-        // TODO: Implement forgot password logic
-        // This would typically involve sending a password reset email
-        val email = uiState.value.email ?: return
-
-        if (email.isBlank()) {
-            setError(message = "Please enter your email address")
+    fun loginWithGoogle(idToken: String?) {
+        if (idToken.isNullOrBlank()) {
+            setError("Google sign-in cancelled or failed")
             return
         }
-
-        setError(message = "Password reset functionality not implemented yet")
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            // serverul decide login vs register pentru GOOGLE; trimitem la login endpoint
+            val result = authRepository.login(
+                email = null,
+                password = null,
+                googleIdToken = idToken,
+                provider = AuthProvider.GOOGLE
+            )
+            handleAuthResult(result)
+            // idToken nu e ținut nicăieri în state — nu se poate reutiliza accidental
+        }
     }
 
-
-    private fun isValidEmail(email: String?): Boolean {
-        if(email.isNullOrBlank()) {
-            return false
-        }
-        val emailRegex = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-        return emailRegex.matches(email)
-    }
-
-    private fun isValidPassword(password: String?): Boolean {
-        return !password.isNullOrBlank() && password.length >= 8
-    }
-
-    private fun validateInputs(email: String?, password: String?, confirmPassword: String?): Boolean {
-
-        if (email.isNullOrBlank()) {
-            setError("Email cannot be empty")
-            return false
-        }
-
-        if (!isValidEmail(email)) {
-            setError("Invalid email format")
-            return false
-        }
-
-        if (password.isNullOrBlank()) {
-            setError("Password cannot be empty")
-            return false
-        }
-
-        if (!isValidPassword(password)) {
-            setError("Password must be at least 8 characters long")
-            return false
-        }
-
-        if (confirmPassword != null) {
-            if (confirmPassword.isBlank()) {
-                setError("Please confirm your password")
-                return false
+    private suspend fun handleAuthResult(result: ApiResult<com.example.carspotter.data.remote.dto.auth.AuthResponse>) {
+        when (result) {
+            is ApiResult.Success -> {
+                userPreferences.saveJwtToken(result.data.token)
+                val navTarget = when (result.data.onboardingStep) {
+                    OnboardingStep.PROFILE_REQUIRED -> AuthNavigationEvent.ToProfileCustomization
+                    OnboardingStep.COMPLETED -> AuthNavigationEvent.ToFeed
+                }
+                _uiState.update {
+                    it.copy(isLoading = false, navigationEvent = navTarget)
+                }
             }
-
-            if (password != confirmPassword) {
-                setError("Passwords do not match")
-                return false
-            }
+            is ApiResult.Error -> setError(result.message)
         }
+    }
 
-        return true
+    fun consumeNavigationEvent() {
+        _uiState.update { it.copy(navigationEvent = null) }
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        val r = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+        return r.matches(email)
     }
 
     private fun setError(message: String) {
-        _uiState.update { it.copy(errorMessage = message, isLoading = false) }
-
-        viewModelScope.launch {
-            delay(3000)
-            _uiState.update { it.copy(errorMessage = null) }
-        }
-    }
-
-    fun clearError() {
-        _uiState.update {
-            it.copy(errorMessage = null)
-        }
-    }
-
-    fun setRegularAuth() {
         _uiState.update {
             it.copy(
-                provider = AuthProvider.REGULAR,
-                googleIdToken = null,
-                errorMessage = null
+                errorMessage = message,
+                errorId = it.errorId + 1,
+                isLoading = false
             )
         }
     }
 
-    /**
-     * Resets the onboarding status to false and updates the UI state.
-     * This is useful for testing the onboarding flow without having to uninstall the app.
-     *
-     * Only for testing purposes
-     */
+    fun forgotPassword() {
+        setError("Password reset functionality not implemented yet")
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    // For testing — scoate înainte de release
     fun resetOnboardingStatus(onComplete: () -> Unit) {
         viewModelScope.launch {
             userPreferences.resetOnboardingStatus()
             onComplete()
         }
     }
-
-    fun setAuthenticatedTrue() {
-        _uiState.update {  it.copy(isAuthenticated = true) }
-    }
-
 }

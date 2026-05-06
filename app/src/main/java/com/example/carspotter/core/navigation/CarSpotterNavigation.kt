@@ -12,10 +12,13 @@ import com.example.carspotter.features.profile.customization.ProfileCustomizatio
 import com.example.carspotter.features.settings.SettingsScreen
 
 @Composable
-fun CarSpotterNavigation(navController: NavHostController) {
+fun CarSpotterNavigation(
+    navController: NavHostController,
+    startDestination: String,
+    ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Onboarding.route
+        startDestination = startDestination
     ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(

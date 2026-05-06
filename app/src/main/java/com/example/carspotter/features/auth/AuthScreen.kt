@@ -53,21 +53,28 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(
-                message = message,
-            )
-            viewModel.clearError()
-        }
+    LaunchedEffect(uiState.errorId) {
+        val msg = uiState.errorMessage ?: return@LaunchedEffect
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message = msg)
+        viewModel.onErrorShown()
     }
 
-    LaunchedEffect(uiState.isAuthenticated) {
-        if (uiState.isAuthenticated) {
-            navController.navigate(Screen.ProfileCustomization.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+    LaunchedEffect(uiState.navigationEvent) {
+        when (uiState.navigationEvent) {
+            AuthNavigationEvent.ToProfileCustomization -> {
+                navController.navigate(Screen.ProfileCustomization.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+                viewModel.consumeNavigationEvent()
             }
+            AuthNavigationEvent.ToFeed -> {
+                navController.navigate(Screen.Feed.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+                viewModel.consumeNavigationEvent()
+            }
+            null -> Unit
         }
     }
 
@@ -94,29 +101,11 @@ fun AuthScreen(
                                 is AuthAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
                                 is AuthAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
                                 is AuthAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
-                                is AuthAction.Login -> {
-                                    if (action.googleId != null) {
-                                        viewModel.setGoogleAuth(action.googleId)
-                                        viewModel.login(action.googleId)
-                                    } else {
-                                        viewModel.setRegularAuth()
-                                        viewModel.login()
-                                    }
-                                }
-                                is AuthAction.SignUp -> {
-                                    viewModel.signUp()
-                                }
-
-                                is AuthAction.ForgotPassword -> viewModel.forgotPassword()
+                                is AuthAction.SubmitEmailAuth -> viewModel.submitEmailAuth()
+                                is AuthAction.GoogleSignInResult -> viewModel.loginWithGoogle(action.idToken)
                                 is AuthAction.ToggleMode -> viewModel.toggleLoginMode()
-                                is AuthAction.ResetOnboarding -> {
-                                    viewModel.resetOnboardingStatus {
-                                        navController.navigate(Screen.Onboarding.route) {
-                                            popUpTo(Screen.Login.route) { inclusive = true }
-                                        }
-                                    }
-                                }
-                                is AuthAction.SetAuthenticatedTrue -> viewModel.setAuthenticatedTrue()
+                                is AuthAction.ForgotPassword -> viewModel.forgotPassword()
+                                is AuthAction.ResetOnboarding -> { /* test-only */ }
                             }
                         }
                     )
@@ -274,7 +263,7 @@ private fun LoginForm(
     )
 
     PasswordField(
-        password = uiState.password ?: "",
+        password = uiState.password,
         onPasswordChange = { onAction(AuthAction.PasswordChanged(it)) },
         isPasswordVisible = uiState.isPasswordVisible,
         onTogglePasswordVisibility = { onAction(AuthAction.TogglePasswordVisibility) },
@@ -302,7 +291,7 @@ private fun LoginForm(
         exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
     ) {
         ForgotPasswordText(
-            onForgotPasswordClick = { onAction(AuthAction.SetAuthenticatedTrue) } // TODO: Only for testing purposes
+            onForgotPasswordClick = { onAction(AuthAction.ForgotPassword) }
         )
     }
 
@@ -318,22 +307,15 @@ private fun LoginActions(
 ) {
     PrimaryActionButton(
         text = if (uiState.isLoginMode) "Log In" else "Sign Up",
-        onClick = {
-            if (uiState.isLoginMode) {
-                onAction(AuthAction.Login(null, AuthProvider.REGULAR))
-            } else {
-                onAction(AuthAction.SignUp(null, AuthProvider.REGULAR))
-            }
-        },
+        onClick = { onAction(AuthAction.SubmitEmailAuth) },
         isLoading = uiState.isLoading
     )
 
     GoogleSignInHandler(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
-        onGoogleSignIn = { idToken, email ->
-            onAction(AuthAction.EmailChanged(email))
-            onAction(AuthAction.Login(idToken, AuthProvider.GOOGLE))
+        onGoogleSignIn = { idToken ->
+            onAction(AuthAction.GoogleSignInResult(idToken))
         }
     )
 }
@@ -364,7 +346,7 @@ private fun LoginFooter(
 private fun GoogleSignInHandler(
     text: String,
     isLoading: Boolean,
-    onGoogleSignIn: (String?, String?) -> Unit
+    onGoogleSignIn: (String?) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -385,20 +367,10 @@ private fun GoogleSignInHandler(
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(ApiException::class.java)
-            val idToken = account.idToken
-            val email = account.email
-
-
-
-            Log.d("GoogleSignIn", "WEB_CLIENT_ID=${BuildConfig.WEB_CLIENT_ID}")
-            Log.d("GoogleSignIn", "email=$email")
-            Log.d("GoogleSignIn", "idToken=${idToken?.take(30)}")
-            Log.d("GoogleSignIn", "idTokenNull=${idToken == null}")
-
-            onGoogleSignIn(idToken, email)
+            onGoogleSignIn(account.idToken)
         } catch (e: ApiException) {
             Log.e("GoogleSignIn", "Google sign in failed", e)
-            onGoogleSignIn(null, null)
+            onGoogleSignIn(null)
         }
     }
 
