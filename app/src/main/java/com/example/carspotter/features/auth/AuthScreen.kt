@@ -46,16 +46,20 @@ import kotlinx.coroutines.delay
  * Login screen that allows users to sign in or create a new account.
  */
 @Composable
-fun LoginScreen(
+fun AuthScreen(
     navController: NavController,
-    viewModel: LoginViewModel = hiltViewModel(),
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(
+                message = message,
+            )
+            viewModel.clearError()
         }
     }
 
@@ -85,35 +89,34 @@ fun LoginScreen(
                         uiState = uiState,
                         onAction = { action ->
                             when (action) {
-                                is LoginAction.EmailChanged -> viewModel.updateEmail(action.email)
-                                is LoginAction.PasswordChanged -> viewModel.updatePassword(action.password)
-                                is LoginAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
-                                is LoginAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
-                                is LoginAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
-                                is LoginAction.Login -> {
-                                    viewModel.setProviderAndToken(action.googleId, action.provider)
-                                    Log.d(
-                                        "GOOGLE_ID and PROVIDER",
-                                        "googleId: ${uiState.googleIdToken}, provider: ${uiState.provider}"
-                                    )
-                                    viewModel.login(action.googleId)
+                                is AuthAction.EmailChanged -> viewModel.updateEmail(action.email)
+                                is AuthAction.PasswordChanged -> viewModel.updatePassword(action.password)
+                                is AuthAction.ConfirmPasswordChanged -> viewModel.updateConfirmPassword(action.password)
+                                is AuthAction.TogglePasswordVisibility -> viewModel.togglePasswordVisibility()
+                                is AuthAction.ToggleConfirmPasswordVisibility -> viewModel.toggleConfirmPasswordVisibility()
+                                is AuthAction.Login -> {
+                                    if (action.googleId != null) {
+                                        viewModel.setGoogleAuth(action.googleId)
+                                        viewModel.login(action.googleId)
+                                    } else {
+                                        viewModel.setRegularAuth()
+                                        viewModel.login()
+                                    }
                                 }
-
-                                is LoginAction.SignUp -> {
-                                    viewModel.setProviderAndToken(null, AuthProvider.REGULAR)
+                                is AuthAction.SignUp -> {
                                     viewModel.signUp()
                                 }
 
-                                is LoginAction.ForgotPassword -> viewModel.forgotPassword()
-                                is LoginAction.ToggleMode -> viewModel.toggleLoginMode()
-                                is LoginAction.ResetOnboarding -> {
+                                is AuthAction.ForgotPassword -> viewModel.forgotPassword()
+                                is AuthAction.ToggleMode -> viewModel.toggleLoginMode()
+                                is AuthAction.ResetOnboarding -> {
                                     viewModel.resetOnboardingStatus {
                                         navController.navigate(Screen.Onboarding.route) {
                                             popUpTo(Screen.Login.route) { inclusive = true }
                                         }
                                     }
                                 }
-                                is LoginAction.SetAuthenticatedTrue -> viewModel.setAuthenticatedTrue()
+                                is AuthAction.SetAuthenticatedTrue -> viewModel.setAuthenticatedTrue()
                             }
                         }
                     )
@@ -170,8 +173,8 @@ private fun LoginHeader() {
     Spacer(modifier = Modifier.height(45.dp))
 
     GradientText(
-        text = "CarSpotter",
-        fontSize = 48.sp,
+        text = "Revio",
+        fontSize = 60.sp,
         fontWeight = FontWeight.Bold,
     )
 
@@ -187,8 +190,8 @@ private fun LoginHeader() {
 
 @Composable
 private fun LoginCard(
-    uiState: LoginUiState,
-    onAction: (LoginAction) -> Unit
+    uiState: AuthUiState,
+    onAction: (AuthAction) -> Unit
 ) {
     var shouldShowConfirm by remember { mutableStateOf(false) }
     var shouldShowForgot by remember { mutableStateOf(false) }
@@ -260,21 +263,21 @@ private fun LoginCard(
 
 @Composable
 private fun LoginForm(
-    uiState: LoginUiState,
+    uiState: AuthUiState,
     shouldShowConfirm: Boolean,
     shouldShowForgot: Boolean,
-    onAction: (LoginAction) -> Unit
+    onAction: (AuthAction) -> Unit
 ) {
     EmailField(
         email = uiState.email,
-        onEmailChange = { onAction(LoginAction.EmailChanged(it)) }
+        onEmailChange = { onAction(AuthAction.EmailChanged(it)) }
     )
 
     PasswordField(
         password = uiState.password ?: "",
-        onPasswordChange = { onAction(LoginAction.PasswordChanged(it)) },
+        onPasswordChange = { onAction(AuthAction.PasswordChanged(it)) },
         isPasswordVisible = uiState.isPasswordVisible,
-        onTogglePasswordVisibility = { onAction(LoginAction.TogglePasswordVisibility) },
+        onTogglePasswordVisibility = { onAction(AuthAction.TogglePasswordVisibility) },
         imeAction = if (uiState.isLoginMode) ImeAction.Done else ImeAction.Next
     )
 
@@ -285,9 +288,9 @@ private fun LoginForm(
     ) {
         PasswordField(
             password = uiState.confirmPassword,
-            onPasswordChange = { onAction(LoginAction.ConfirmPasswordChanged(it)) },
+            onPasswordChange = { onAction(AuthAction.ConfirmPasswordChanged(it)) },
             isPasswordVisible = uiState.isConfirmPasswordVisible,
-            onTogglePasswordVisibility = { onAction(LoginAction.ToggleConfirmPasswordVisibility) },
+            onTogglePasswordVisibility = { onAction(AuthAction.ToggleConfirmPasswordVisibility) },
             label = "Confirm Password",
             modifier = Modifier.padding(top = 8.dp)
         )
@@ -299,7 +302,7 @@ private fun LoginForm(
         exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
     ) {
         ForgotPasswordText(
-            onForgotPasswordClick = { onAction(LoginAction.SetAuthenticatedTrue) } // TODO: Only for testing purposes
+            onForgotPasswordClick = { onAction(AuthAction.SetAuthenticatedTrue) } // TODO: Only for testing purposes
         )
     }
 
@@ -310,16 +313,16 @@ private fun LoginForm(
 
 @Composable
 private fun LoginActions(
-    uiState: LoginUiState,
-    onAction: (LoginAction) -> Unit
+    uiState: AuthUiState,
+    onAction: (AuthAction) -> Unit
 ) {
     PrimaryActionButton(
         text = if (uiState.isLoginMode) "Log In" else "Sign Up",
         onClick = {
             if (uiState.isLoginMode) {
-                onAction(LoginAction.Login(null, AuthProvider.REGULAR))
+                onAction(AuthAction.Login(null, AuthProvider.REGULAR))
             } else {
-                onAction(LoginAction.SignUp(null, AuthProvider.REGULAR))
+                onAction(AuthAction.SignUp(null, AuthProvider.REGULAR))
             }
         },
         isLoading = uiState.isLoading
@@ -329,16 +332,16 @@ private fun LoginActions(
         text = if (uiState.isLoginMode) "Log In with Google" else "Sign Up with Google",
         isLoading = uiState.isLoading,
         onGoogleSignIn = { idToken, email ->
-            onAction(LoginAction.EmailChanged(email))
-            onAction(LoginAction.Login(idToken, AuthProvider.GOOGLE))
+            onAction(AuthAction.EmailChanged(email))
+            onAction(AuthAction.Login(idToken, AuthProvider.GOOGLE))
         }
     )
 }
 
 @Composable
 private fun LoginFooter(
-    uiState: LoginUiState,
-    onAction: (LoginAction) -> Unit
+    uiState: AuthUiState,
+    onAction: (AuthAction) -> Unit
 ) {
     Row {
         // For testing: Reset onboarding
@@ -347,12 +350,12 @@ private fun LoginFooter(
             color = Color.Red,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clickable { onAction(LoginAction.ResetOnboarding) }
+            modifier = Modifier.clickable { onAction(AuthAction.ResetOnboarding) }
         )
 
         AuthModeSwitchText(
             isLoginMode = uiState.isLoginMode,
-            onToggleMode = { onAction(LoginAction.ToggleMode) }
+            onToggleMode = { onAction(AuthAction.ToggleMode) }
         )
     }
 }

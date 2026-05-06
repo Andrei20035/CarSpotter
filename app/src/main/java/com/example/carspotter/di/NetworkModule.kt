@@ -28,7 +28,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
-    private const val BASE_URL = "http://192.168.0.107:8080/api/"
+    private const val BASE_URL = "http://10.0.2.2:8080/api/"
 
     @Provides
     @Singleton
@@ -42,7 +42,6 @@ object NetworkModule {
     fun provideAuthInterceptor(userPreferences: UserPreferences): Interceptor {
         return Interceptor { chain ->
             val token = runBlocking { userPreferences.authToken.firstOrNull() }
-            Log.d("TOKEN USED", token.toString())
             val newRequest = chain.request().newBuilder().apply {
                 if (!token.isNullOrBlank()) {
                     addHeader("Authorization", "Bearer $token")
@@ -58,7 +57,7 @@ object NetworkModule {
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.BASIC
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }

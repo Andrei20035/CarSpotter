@@ -19,10 +19,9 @@ fun GradientText(
     textAlign: TextAlign = TextAlign.Center
 ) {
     val gradientColors = listOf(
-        Color(0xFF4285F4),
-        Color(0xFF9B72CB),
-        Color(0xFFD96570),
-        Color(0xFFA470A8)
+        Color(0xFF4A90E2),
+        Color(0xFF9B59B6),
+        Color(0xFFFF5F6D)
     )
 
     val stops = listOf(0.05f, 0.31f, 0.84f, 1f)

@@ -21,6 +21,7 @@
 <!--    TODO: Remove this in production ^-->
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true"
             android:theme="@style/Theme.CarSpotter">
             <intent-filter>

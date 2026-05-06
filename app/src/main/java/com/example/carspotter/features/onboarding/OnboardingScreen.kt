@@ -46,7 +46,7 @@ fun OnboardingScreen(
         listOf(
             OnboardingPage(
                 title = "Welcome to",
-                subtitle = "CarSpotter!",
+                subtitle = "Revio!",
                 imageRes = R.drawable.app_presentation_1,
                 titleColor = Color.White,
                 titleFontWeight = FontWeight.Normal,
@@ -167,21 +167,12 @@ fun OnboardingPageContent(pageData: OnboardingPage, isFirstPage: Boolean) {
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
-            alpha = 0.8f
+            alpha = 1f
         )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.7f)
-                        )
-                    )
-                )
         )
 
         Column(

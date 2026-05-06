@@ -3,7 +3,6 @@ package com.example.carspotter.features.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
-import com.example.carspotter.data.repository.AuthRepositoryImpl
 import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.repository.AuthRepository
@@ -17,16 +16,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(
+class AuthViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     fun updateEmail(email: String?) {
-        _uiState.update { it.copy(email = email) }
+        _uiState.update {
+            it.copy(
+                email = email,
+                provider = AuthProvider.REGULAR,
+                googleIdToken = null
+            )
+        }
     }
 
     fun updatePassword(password: String) {
@@ -45,11 +50,12 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(isConfirmPasswordVisible = !it.isConfirmPasswordVisible) }
     }
 
-    fun setProviderAndToken(googleIdToken: String?, provider: AuthProvider) {
+    fun setGoogleAuth(googleIdToken: String) {
         _uiState.update {
             it.copy(
-                provider = provider,
-                googleIdToken = googleIdToken
+                provider = AuthProvider.GOOGLE,
+                googleIdToken = googleIdToken,
+                errorMessage = null
             )
         }
     }
@@ -73,9 +79,13 @@ class LoginViewModel @Inject constructor(
         val tokenToUse = googleIdToken ?: uiState.value.googleIdToken
         val provider = uiState.value.provider
 
+        val requestEmail = if (provider == AuthProvider.GOOGLE) null else email
+        val requestPassword = if (provider == AuthProvider.GOOGLE) null else password
+
+
         when (provider) {
             AuthProvider.REGULAR -> {
-                if (!isValidEmail(email)) {
+                if (!isValidEmail(requestEmail)) {
                     setError("Email is invalid")
                     return
                 }
@@ -83,7 +93,7 @@ class LoginViewModel @Inject constructor(
                     setError("Password cannot be empty")
                     return
                 }
-                if (!isValidPassword(password)) {
+                if (!isValidPassword(requestPassword)) {
                     setError("Password must be at least 8 characters long and include an uppercase letter and a special character.")
                     return
                 }
@@ -91,7 +101,7 @@ class LoginViewModel @Inject constructor(
 
             AuthProvider.GOOGLE -> {
                 if (tokenToUse.isNullOrBlank()) {
-                    setError("An error occurred: missing Google ID")
+                    setError("Missing Google ID token")
                     return
                 }
             }
@@ -101,9 +111,9 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             when (val result = authRepository.login(
-                email = email!!,
-                password = password,
-                googleIdToken = googleIdToken,
+                email = requestEmail,
+                password = requestPassword,
+                googleIdToken = tokenToUse,
                 provider = provider
             )) {
                 is ApiResult.Success ->  {
@@ -119,20 +129,16 @@ class LoginViewModel @Inject constructor(
 
 
     fun signUp() {
-        val email = uiState.value.email ?: return
+        val email = uiState.value.email
         val password = uiState.value.password
         val confirmPassword = uiState.value.confirmPassword
-        val authProvider = uiState.value.provider
 
         if (!validateInputs(email, password, confirmPassword)) return
-
-        val nonNullPassword = password!!
-        val nonNullConfirmPassword = confirmPassword!!
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (val result = authRepository.register(email, nonNullPassword, nonNullConfirmPassword, authProvider)) {
+            when (val result = authRepository.register(email, password, null,AuthProvider.REGULAR)) {
                 is ApiResult.Success -> {
                     userPreferences.saveJwtToken(result.data.token)
                     _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
@@ -169,37 +175,44 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun isValidPassword(password: String?): Boolean {
-        val hasMinLength = password?.length!! >= 10
-        val hasUpperCase = password.any { it.isUpperCase() }
-        val hasSpecialChar = password.any { !it.isLetterOrDigit() }
-
-        return hasMinLength && hasUpperCase == true && hasSpecialChar == true
+        return !password.isNullOrBlank() && password.length >= 8
     }
 
-    private fun validateInputs(email: String, password: String?, confirmPassword: String?): Boolean {
-        return when {
-            email.isBlank() || password.isNullOrBlank() -> {
-                setError("Email and password cannot be empty")
-                false
-            }
+    private fun validateInputs(email: String?, password: String?, confirmPassword: String?): Boolean {
 
-            !isValidEmail(email) -> {
-                setError("Email is invalid")
-                false
-            }
-
-            confirmPassword != null && password != confirmPassword -> {
-                setError("Passwords do not match")
-                false
-            }
-
-            !isValidPassword(password) -> {
-                setError("Password needs 10+ chars, 1 uppercase & special char")
-                false
-            }
-
-            else -> true
+        if (email.isNullOrBlank()) {
+            setError("Email cannot be empty")
+            return false
         }
+
+        if (!isValidEmail(email)) {
+            setError("Invalid email format")
+            return false
+        }
+
+        if (password.isNullOrBlank()) {
+            setError("Password cannot be empty")
+            return false
+        }
+
+        if (!isValidPassword(password)) {
+            setError("Password must be at least 8 characters long")
+            return false
+        }
+
+        if (confirmPassword != null) {
+            if (confirmPassword.isBlank()) {
+                setError("Please confirm your password")
+                return false
+            }
+
+            if (password != confirmPassword) {
+                setError("Passwords do not match")
+                return false
+            }
+        }
+
+        return true
     }
 
     private fun setError(message: String) {
@@ -208,6 +221,22 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             delay(3000)
             _uiState.update { it.copy(errorMessage = null) }
+        }
+    }
+
+    fun clearError() {
+        _uiState.update {
+            it.copy(errorMessage = null)
+        }
+    }
+
+    fun setRegularAuth() {
+        _uiState.update {
+            it.copy(
+                provider = AuthProvider.REGULAR,
+                googleIdToken = null,
+                errorMessage = null
+            )
         }
     }
 

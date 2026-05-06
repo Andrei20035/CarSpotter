@@ -3,8 +3,7 @@ package com.example.carspotter.data.repository
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.api.AuthApi
 import com.example.carspotter.data.remote.dto.auth.AuthResponse
-import com.example.carspotter.data.remote.dto.auth.LoginRequest
-import com.example.carspotter.data.remote.dto.auth.RegisterRequest
+import com.example.carspotter.data.remote.dto.auth.AuthRequest
 import com.example.carspotter.data.remote.dto.auth.UpdatePasswordRequest
 import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.network.ApiResult
@@ -13,10 +12,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 interface AuthRepository {
-    suspend fun login(email: String, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse>
-    suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse>
+    suspend fun login(email: String?, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse>
+    suspend fun register(email: String?, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse>
     suspend fun deleteAccount(): ApiResult<Unit>
-    suspend fun updatePassword(currentPassword: String): ApiResult<Unit>
+    suspend fun updatePassword(oldPassword: String, newPassword: String): ApiResult<Unit>
     suspend fun logout()
 }
 
@@ -26,13 +25,13 @@ class AuthRepositoryImpl @Inject constructor(
     private val userPreferences: UserPreferences
 ) : AuthRepository {
 
-    override suspend fun login(email: String, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse> {
-        val loginRequest = LoginRequest(email, password, googleIdToken, provider)
+    override suspend fun login(email: String?, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse> {
+        val loginRequest = AuthRequest(email, password, googleIdToken, provider)
         return safeApiCall { authApi.login(loginRequest) }
     }
 
-    override suspend fun register(email: String, password: String, confirmPassword: String, provider: AuthProvider): ApiResult<AuthResponse> {
-        val registerRequest = RegisterRequest(email, password, provider)
+    override suspend fun register(email: String?, password: String?, googleIdToken: String?, provider: AuthProvider): ApiResult<AuthResponse> {
+        val registerRequest = AuthRequest(email, password, googleIdToken, provider)
         return safeApiCall { authApi.register(registerRequest) }
     }
 
@@ -46,8 +45,8 @@ class AuthRepositoryImpl @Inject constructor(
         return result
     }
 
-    override suspend fun updatePassword(currentPassword: String): ApiResult<Unit> {
-        val updatePasswordRequest = UpdatePasswordRequest(currentPassword)
+    override suspend fun updatePassword(oldPassword: String, newPassword: String): ApiResult<Unit> {
+        val updatePasswordRequest = UpdatePasswordRequest(oldPassword, newPassword)
         return safeApiCall { authApi.updatePassword(updatePasswordRequest) }
     }
 

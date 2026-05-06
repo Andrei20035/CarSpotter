@@ -8,4 +8,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AuthResponse(
     val token: String,
+    val onboardingStep: OnboardingStep
 )
+
+@Serializable
+enum class OnboardingStep {
+    PROFILE_REQUIRED,
+    COMPLETED
+}

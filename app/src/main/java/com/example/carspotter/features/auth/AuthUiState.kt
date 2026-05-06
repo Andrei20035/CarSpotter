@@ -2,7 +2,7 @@ package com.example.carspotter.features.auth
 
 import com.example.carspotter.data.model.AuthProvider
 
-data class LoginUiState(
+data class AuthUiState(
     val email: String? = null,
     val password: String? = null,
     val googleIdToken: String? = null,
