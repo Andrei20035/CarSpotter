@@ -2,6 +2,7 @@ package com.example.carspotter.features.profile.customization
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -110,6 +113,16 @@ fun CarInfoStep(
                     }
                 )
             }
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -136,7 +149,7 @@ private fun CarInfoForm(
             PictureContainer(
                 currentStep = uiState.currentStep,
                 picture = uiState.carPicture,
-                text = "You car picture",
+                text = "Your car picture",
                 onImageSelected = { uri ->
                     val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
                     onAction(
@@ -163,8 +176,15 @@ private fun CarInfoForm(
             )
             DropdownFieldWithoutOverlay(
                 selectedItem = uiState.selectedModel,
-                label = "Model",
+                label = if (uiState.isFetchingModels) "Loading models..." else "Model",
                 onDropdownToggle = {
+                    if (uiState.selectedBrand.isBlank()) {
+                        onAction(ProfileCustomizationAction.UpdateCarModel(""))
+                        return@DropdownFieldWithoutOverlay
+                    }
+                    if (uiState.isFetchingModels || uiState.modelsForSelectedBrand.isEmpty()) {
+                        return@DropdownFieldWithoutOverlay
+                    }
                     modelDropdownExpanded = !modelDropdownExpanded
                     Log.d("modelDropdownExpanded", modelDropdownExpanded.toString())
                     // Close brand dropdown if model is opened
@@ -172,6 +192,10 @@ private fun CarInfoForm(
                 }
             )
             Spacer(Modifier.weight(1f))
+            if (uiState.isFetchingModels) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(16.dp))
+            }
             NextStepButton(
                 text = "Next",
                 onClick = { onAction(ProfileCustomizationAction.Complete) },
@@ -195,7 +219,7 @@ private fun CarInfoForm(
 
         DropdownOverlay(
             visible = modelDropdownExpanded,
-            items = uiState.modelsForSelectedBrand,
+            items = uiState.modelsForSelectedBrand.map { it.model },
             onItemSelected = { model ->
                 onAction(ProfileCustomizationAction.UpdateCarModel(model))
                 modelDropdownExpanded = false

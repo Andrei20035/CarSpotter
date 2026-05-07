@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil3.compose.AsyncImage
 import com.example.carspotter.R
 import com.example.carspotter.core.ui.components.GradientText
 import com.example.carspotter.core.navigation.Screen
@@ -75,7 +78,9 @@ private data class FeedPost(
 @Composable
 fun FeedScreen(
     navController: NavController,
+    viewModel: FeedViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val currentDayPosts = remember {
         listOf(
             CurrentDayPost(R.drawable.feed_image1, 220, "8 Feb 16:42", "Ferrari 488 Pista", "London, UK"),
@@ -167,15 +172,27 @@ fun FeedScreen(
                         lineHeight = 30.sp
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    Image(
-                        painter = painterResource(R.drawable.profile_picture),
-                        contentDescription = "Profile",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .clickable { navController.navigate(Screen.Profile.route) }
-                    )
+                    val profileModifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .clickable { navController.navigate(Screen.Profile.route) }
+                    if (uiState.currentUser?.profilePicturePath.isNullOrBlank()) {
+                        Image(
+                            painter = painterResource(R.drawable.profile_picture),
+                            contentDescription = "Profile",
+                            contentScale = ContentScale.Crop,
+                            modifier = profileModifier
+                        )
+                    } else {
+                        AsyncImage(
+                            model = uiState.currentUser?.profilePicturePath,
+                            contentDescription = "Profile",
+                            contentScale = ContentScale.Crop,
+                            modifier = profileModifier,
+                            fallback = painterResource(R.drawable.profile_picture),
+                            error = painterResource(R.drawable.profile_picture)
+                        )
+                    }
                 }
             }
         },

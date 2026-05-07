@@ -5,14 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.dto.user.CreateUserRequest
-import com.example.carspotter.data.remote.dto.user.UpdateProfilePictureRequest
-import com.example.carspotter.data.remote.dto.user.UploadImageRequest
 import com.example.carspotter.data.remote.dto.user_car.UserCarRequest
-import com.example.carspotter.data.remote.dto.user_car.UserCarUpdateRequest
-import com.example.carspotter.data.repository.CarModelRepositoryImpl
-import com.example.carspotter.data.repository.ImageRepositoryImpl
-import com.example.carspotter.data.repository.UserCarRepositoryImpl
-import com.example.carspotter.data.repository.UserRepositoryImpl
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.repository.CarModelRepository
 import com.example.carspotter.data.repository.ImageRepository
@@ -35,7 +28,6 @@ class ProfileCustomizationViewModel @Inject constructor(
     private val userCarRepository: UserCarRepository,
     private val userPreferences: UserPreferences,
     private val carModelRepository: CarModelRepository,
-    private val imageRepository: ImageRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileCustomizationUiState())
@@ -66,7 +58,14 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
     fun updateCarBrand(brand: String) {
-        _uiState.update { it.copy(selectedBrand = brand) }
+        _uiState.update {
+            it.copy(
+                selectedBrand = brand,
+                selectedModel = "",
+                selectedCarModelId = null,
+                modelsForSelectedBrand = emptyList()
+            )
+        }
 
         viewModelScope.launch {
             loadModelsForBrand()
@@ -74,7 +73,13 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
     fun updateCarModel(model: String) {
-        _uiState.update { it.copy(selectedModel = model) }
+        _uiState.update { state ->
+            val selectedModel = state.modelsForSelectedBrand.firstOrNull { it.model == model }
+            state.copy(
+                selectedModel = model,
+                selectedCarModelId = selectedModel?.id
+            )
+        }
     }
 
     suspend fun loadCarBrands() {
@@ -99,14 +104,27 @@ class ProfileCustomizationViewModel @Inject constructor(
 
     suspend fun loadModelsForBrand() {
         _uiState.update { it.copy(isFetchingModels = true) }
-        val models = carModelRepository.getModelsForBrand(_uiState.value.selectedBrand)
+        val brand = _uiState.value.selectedBrand
+        if (brand.isBlank()) {
+            _uiState.update { it.copy(isFetchingModels = false, modelsForSelectedBrand = emptyList()) }
+            return
+        }
+
+        val models = carModelRepository.getModelsForBrand(brand)
 
         when (models) {
             is ApiResult.Success -> {
                 _uiState.update { it.copy(modelsForSelectedBrand = models.data) }
+                Log.d(
+                    "CAR MODELS",
+                    "Loaded ${models.data.size} models for brand '$brand': ${models.data.map { it.model }}"
+                )
             }
 
-            is ApiResult.Error -> setError(models.message)
+            is ApiResult.Error -> {
+                setError(models.message)
+                Log.d("CAR MODELS", "Error loading models for brand '$brand': ${models.message}")
+            }
         }
         _uiState.update { it.copy(isFetchingModels = false) }
 
@@ -165,22 +183,26 @@ class ProfileCustomizationViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isLoading = true) }
 
-                val userId = createUserProfile()
-
-                val nonNullCarImageMime = carImageMime!!
-                val nonNullProfileImageMime = profileImageMime!!
-
-                if(userId != null) {
-                    val carModelId = createUserCarIfNeeded(userId)
-                    uploadImagesIfNeeded(
-                        carModelId = carModelId,
-                        userId = userId,
-                        carImageBytes = carImageBytes,
-                        carImageMime = nonNullCarImageMime,
-                        profileImageBytes = profileImageBytes,
-                        profileImageMime = nonNullProfileImageMime
-                    )
+                if (!isCarInfoValid()) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
                 }
+
+                val userId = createUserProfile() ?: run {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
+                }
+
+                if (!uploadProfileImageIfNeeded(userId, profileImageBytes, profileImageMime)) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
+                }
+
+                if (!createUserCarIfNeeded(userId, carImageBytes, carImageMime)) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
+                }
+
                 _uiState.update { it.copy(isLoading = false, isUserCreated = true) }
             } catch (e: Exception) {
                 setError(e.message.toString())
@@ -191,10 +213,10 @@ class ProfileCustomizationViewModel @Inject constructor(
 
     private suspend fun createUserProfile(): UUID? {
         val createUserRequest = CreateUserRequest(
-            fullName = _uiState.value.fullName,
+            fullName = _uiState.value.fullName.trim(),
             birthDate = _uiState.value.birthDate!!,
-            username = _uiState.value.username,
-            country = _uiState.value.country,
+            username = _uiState.value.username.trim(),
+            country = _uiState.value.country.trim(),
         )
         Log.d("BIRTHDATE" ,_uiState.value.birthDate.toString())
         return when (val result = userRepository.createUser(createUserRequest)) {
@@ -211,24 +233,27 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createUserCarIfNeeded(userId: UUID): UUID? {
+    private suspend fun createUserCarIfNeeded(
+        userId: UUID,
+        carImageBytes: ByteArray?,
+        carImageMime: String?
+    ): Boolean {
         val brand = _uiState.value.selectedBrand
         val model = _uiState.value.selectedModel
+        val carModelId = _uiState.value.selectedCarModelId
 
-        if(brand.isEmpty() || model.isEmpty()) {
-            return null
-        }
-
-        val carModelId = when(val result = carModelRepository.getCarModelId(brand, model)) {
-            is ApiResult.Success -> result.data.id
-            is ApiResult.Error -> {
-                setError(result.message)
-                null
-            }
+        if(brand.isBlank() && model.isBlank()) {
+            return true
         }
 
         if(carModelId == null) {
-            return null
+            setError("Please select a valid car brand and model")
+            return false
+        }
+
+        if (carImageBytes == null) {
+            setError("The server currently requires a car image to save your car")
+            return false
         }
 
         val userCarRequest = UserCarRequest(
@@ -236,64 +261,40 @@ class ProfileCustomizationViewModel @Inject constructor(
             carModelId = carModelId,
             imagePath = null,
         )
-        return when (val result = userCarRepository.createUserCar(userCarRequest)) {
-            is ApiResult.Success -> carModelId
+        return when (val result = userCarRepository.createMyCar(
+            request = userCarRequest,
+            imageBytes = carImageBytes,
+            mimeType = carImageMime ?: "image/jpeg"
+        )) {
+            is ApiResult.Success -> true
             is ApiResult.Error -> {
                 setError(result.message)
-                null
+                false
             }
         }
     }
 
-    private suspend fun uploadImagesIfNeeded(
-        carModelId: UUID?,
+    private suspend fun uploadProfileImageIfNeeded(
         userId: UUID,
         profileImageBytes: ByteArray?,
-        profileImageMime: String,
-        carImageBytes: ByteArray?,
-        carImageMime: String
-    ) {
-        var profileResponse: ApiResult<Unit>? = null
-        var carResponse: ApiResult<Unit>? = null
+        profileImageMime: String?
+    ): Boolean {
+        if (profileImageBytes == null) return true
 
-        profileImageBytes?.let {
-            val request = UploadImageRequest("profiles/$userId.jpg")
-            val profilePicturePath = imageRepository.uploadImageAndGetPublicUrl(
-                request = request,
-                imageBytes = it,
-                mimeType = profileImageMime
-            )
-
-            val profilePictureRequest = UpdateProfilePictureRequest(profilePicturePath)
-            profileResponse = userRepository.updateProfilePicture(profilePictureRequest)
-        }
-
-        carImageBytes?.let {
-            val request = UploadImageRequest("cars/$userId.jpg")
-            val carPicturePath = imageRepository.uploadImageAndGetPublicUrl(
-                request = request,
-                imageBytes = it,
-                mimeType = carImageMime
-            )
-            carModelId?.let{
-                val userCarUpdateRequest = UserCarUpdateRequest(carModelId, carPicturePath)
-                carResponse = userCarRepository.updateUserCar(userCarUpdateRequest)
+        return try {
+            when (val result = userRepository.uploadProfilePicture(
+                imageBytes = profileImageBytes,
+                mimeType = profileImageMime ?: "image/jpeg"
+            )) {
+                is ApiResult.Success -> true
+                is ApiResult.Error -> {
+                    setError(result.message)
+                    false
+                }
             }
-        }
-
-
-        profileResponse?.let {
-            when (it) {
-                is ApiResult.Error -> setError(it.message)
-                is ApiResult.Success -> {}
-            }
-        }
-
-        carResponse?.let {
-            when (it) {
-                is ApiResult.Error -> setError(it.message)
-                is ApiResult.Success -> {}
-            }
+        } catch (e: Exception) {
+            setError(e.message ?: "Failed to upload profile picture")
+            false
         }
     }
 
@@ -301,9 +302,38 @@ class ProfileCustomizationViewModel @Inject constructor(
         val state = _uiState.value
         return state.fullName.isNotBlank() &&
                 state.username.isNotBlank() &&
-                state.birthDate != null
+                state.birthDate != null &&
+                state.country.isNotBlank()
     }
 
+    private fun isCarInfoValid(): Boolean {
+        val state = _uiState.value
+        val hasCarPicture = state.carPicture != null
+        val hasBrand = state.selectedBrand.isNotBlank()
+        val hasModel = state.selectedModel.isNotBlank()
+
+        if (hasCarPicture && (!hasBrand || !hasModel)) {
+            setError("Please select your car brand and model")
+            return false
+        }
+
+        if (hasBrand != hasModel) {
+            setError("Please select both car brand and model")
+            return false
+        }
+
+        if (hasBrand && !hasCarPicture) {
+            setError("The server currently requires a car image to save your car")
+            return false
+        }
+
+        if (hasBrand && state.selectedCarModelId == null) {
+            setError("Please select a valid car model")
+            return false
+        }
+
+        return true
+    }
 
     private fun setError(message: String) {
         _uiState.update { it.copy(errorMessage = message, isLoading = false) }
@@ -315,4 +345,3 @@ class ProfileCustomizationViewModel @Inject constructor(
     }
 
 }
-

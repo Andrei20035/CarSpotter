@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -35,7 +34,7 @@ fun OnboardingScreen(
     navController: NavController,
     viewModel: OnboardingViewModel = hiltViewModel(),
     onComplete: () -> Unit = {
-        navController.navigate(Screen.Login.route) {
+        navController.navigate(Screen.Auth.route) {
             popUpTo(Screen.Onboarding.route) {
                 inclusive = true
             }

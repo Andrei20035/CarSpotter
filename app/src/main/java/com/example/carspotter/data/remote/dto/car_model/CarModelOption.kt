@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 @Serializable
-data class CarModelIdResponse(
+data class CarModelOption(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID
+    val id: UUID,
+    val model: String
 )

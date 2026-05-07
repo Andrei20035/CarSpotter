@@ -24,7 +24,7 @@ fun CarSpotterNavigation(
             OnboardingScreen(
                 navController = navController,
                 onComplete = {
-                    navController.navigate(Screen.Login.route) {
+                    navController.navigate(Screen.Auth.route) {
                         popUpTo(Screen.Onboarding.route) {
                             inclusive = true
                         }
@@ -33,7 +33,7 @@ fun CarSpotterNavigation(
             )
         }
 
-        composable(Screen.Login.route) {
+        composable(Screen.Auth.route) {
             AuthScreen(
                 navController = navController
             )

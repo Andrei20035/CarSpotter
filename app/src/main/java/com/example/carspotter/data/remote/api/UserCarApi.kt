@@ -4,16 +4,20 @@ import com.example.carspotter.data.model.User
 import com.example.carspotter.data.model.UserCar
 import com.example.carspotter.data.remote.dto.user_car.UserCarRequest
 import com.example.carspotter.data.remote.dto.user_car.UserCarUpdateRequest
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 import java.util.UUID
 
 interface UserCarApi {
 
-    @POST("user-cars")
-    suspend fun createUserCar(
-        @Body userCarRequest: UserCarRequest
-    ): Response<Unit>
+    @Multipart
+    @POST("me/car")
+    suspend fun createMyCar(
+        @Part("metadata") metadata: RequestBody,
+        @Part image: MultipartBody.Part
+    ): Response<UserCar>
 
     @GET("user-cars/{userCarId}")
     suspend fun getUserCarById(
@@ -30,10 +34,12 @@ interface UserCarApi {
         @Path("userCarId") userCarId: UUID
     ): Response<User>
 
-    @PUT("user-cars")
-    suspend fun updateUserCar(
-        @Body userCarUpdateRequest: UserCarUpdateRequest
-    ): Response<Unit>
+    @Multipart
+    @PATCH("me/car")
+    suspend fun updateMyCar(
+        @Part("metadata") metadata: RequestBody?,
+        @Part image: MultipartBody.Part?
+    ): Response<UserCar>
 
     @DELETE("user-cars")
     suspend fun deleteUserCar(): Response<Unit>

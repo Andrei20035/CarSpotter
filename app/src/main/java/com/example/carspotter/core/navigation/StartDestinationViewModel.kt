@@ -25,8 +25,11 @@ class StartDestinationViewModel @Inject constructor(
 
             _startDestination.value = when {
                 !onboardingDone -> Screen.Onboarding.route
-                token.isNullOrBlank() -> Screen.Login.route
-                userId == null -> Screen.ProfileCustomization.route
+                token.isNullOrBlank() -> Screen.Auth.route
+                userId == null -> {
+                    userPreferences.clearAuthData()
+                    Screen.Auth.route
+                }
                 else -> Screen.Feed.route
             }
         }

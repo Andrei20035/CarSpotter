@@ -2,6 +2,8 @@ package com.example.carspotter.core.navigation
 
 import com.example.carspotter.MainDispatcherRule
 import com.example.carspotter.data.local.preferences.UserPreferences
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -29,6 +31,7 @@ class StartDestinationViewModelTest {
         every { onboardingCompleted } returns flowOf(onboardingDone)
         every { authToken } returns flowOf(token)
         every { this@apply.userId } returns flowOf(userId)
+        coEvery { clearAuthData() } returns Unit
     }
 
     @Test
@@ -46,16 +49,16 @@ class StartDestinationViewModelTest {
             prefsMock(onboardingDone = true, token = null, userId = null)
         )
 
-        assertEquals(Screen.Login.route, vm.startDestination.value)
+        assertEquals(Screen.Auth.route, vm.startDestination.value)
     }
 
     @Test
-    fun `token salvat dar userId null - duce la ProfileCustomization`() = runTest {
-        val vm = StartDestinationViewModel(
-            prefsMock(onboardingDone = true, token = "jwt", userId = null)
-        )
+    fun `token salvat dar userId null - curata auth data si duce la Auth`() = runTest {
+        val prefs = prefsMock(onboardingDone = true, token = "jwt", userId = null)
+        val vm = StartDestinationViewModel(prefs)
 
-        assertEquals(Screen.ProfileCustomization.route, vm.startDestination.value)
+        assertEquals(Screen.Auth.route, vm.startDestination.value)
+        coVerify(exactly = 1) { prefs.clearAuthData() }
     }
 
     @Test

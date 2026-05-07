@@ -5,6 +5,9 @@ import com.example.carspotter.data.remote.dto.user.*
 import com.example.carspotter.data.model.User
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.core.network.safeApiCall
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +16,8 @@ interface UserRepository {
     suspend fun getAllUsers(): ApiResult<List<User>>
     suspend fun getUsersByUsername(username: String): ApiResult<List<User>>
     suspend fun createUser(request: CreateUserRequest): ApiResult<CreateUserResponse>
-    suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<Unit>
+    suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<User>
+    suspend fun uploadProfilePicture(imageBytes: ByteArray, mimeType: String): ApiResult<User>
     suspend fun deleteCurrentUser(): ApiResult<Unit>
 }
 @Singleton
@@ -46,8 +50,21 @@ class UserRepositoryImpl @Inject constructor(
         return safeApiCall { userApi.createUser(request)}
     }
 
-    override suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<Unit> {
+    override suspend fun updateProfilePicture(request: UpdateProfilePictureRequest): ApiResult<User> {
         return safeApiCall { userApi.updateProfilePicture(request)}
+    }
+
+    override suspend fun uploadProfilePicture(
+        imageBytes: ByteArray,
+        mimeType: String
+    ): ApiResult<User> {
+        val image = MultipartBody.Part.createFormData(
+            name = "image",
+            filename = "profile.jpg",
+            body = imageBytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        )
+
+        return safeApiCall { userApi.uploadProfilePicture(image) }
     }
 
     override suspend fun deleteCurrentUser(): ApiResult<Unit> {

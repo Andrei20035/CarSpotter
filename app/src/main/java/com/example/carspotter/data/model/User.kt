@@ -16,9 +16,9 @@ data class User(
     val id: UUID,
     val profilePicturePath: String? = null,
     val fullName: String,
-    val phoneNumber: String,
+    val phoneNumber: String? = null,
     @Serializable(with = LocalDateSerializer::class)
-    val birthDate: LocalDate,
+    val birthDate: LocalDate? = null,
     val username: String,
     val country: String,
     val spotScore: Int = 0,

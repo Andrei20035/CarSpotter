@@ -1,7 +1,7 @@
 package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.remote.api.CarModelApi
-import com.example.carspotter.data.remote.dto.car_model.CarModelIdResponse
+import com.example.carspotter.data.remote.dto.car_model.CarModelOption
 import com.example.carspotter.data.model.CarModel
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.core.network.safeApiCall
@@ -12,9 +12,8 @@ import javax.inject.Singleton
 interface CarModelRepository {
     suspend fun getAllCarModels(): ApiResult<List<CarModel>>
     suspend fun getCarModelById(modelId: UUID): ApiResult<CarModel>
-    suspend fun getCarModelId(brand: String, model: String): ApiResult<CarModelIdResponse>
     suspend fun getAllCarBrands(): ApiResult<List<String>>
-    suspend fun getModelsForBrand(brand: String): ApiResult<List<String>>
+    suspend fun getModelsForBrand(brand: String): ApiResult<List<CarModelOption>>
 }
 @Singleton
 class CarModelRepositoryImpl @Inject constructor(
@@ -35,18 +34,11 @@ class CarModelRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getCarModelId(
-        brand: String,
-        model: String
-    ): ApiResult<CarModelIdResponse> {
-        return safeApiCall { carModelApi.getCarModelId(brand, model) }
-    }
-
     override suspend fun getAllCarBrands(): ApiResult<List<String>> {
         return safeApiCall { carModelApi.getAllCarBrands() }
     }
 
-    override suspend fun getModelsForBrand(brand: String): ApiResult<List<String>> {
+    override suspend fun getModelsForBrand(brand: String): ApiResult<List<CarModelOption>> {
         return safeApiCall { carModelApi.getModelsForBrand(brand) }
     }
 }

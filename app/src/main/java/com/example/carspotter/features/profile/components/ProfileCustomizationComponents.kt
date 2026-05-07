@@ -174,7 +174,7 @@ fun DropdownFieldWithoutOverlay(
     onDropdownToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val clickInteractionSource = remember { MutableInteractionSource() }
 
     Column(modifier = modifier) {
         Text(
@@ -192,7 +192,6 @@ fun DropdownFieldWithoutOverlay(
                 value = selectedItem,
                 onValueChange = {},
                 readOnly = true,
-                interactionSource = interactionSource,
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -215,15 +214,15 @@ fun DropdownFieldWithoutOverlay(
                     fontWeight = FontWeight.Medium
                 )
             )
-        }
-    }
-
-    // Handle tap to toggle dropdown
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Press) {
-                onDropdownToggle()
-            }
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(
+                        interactionSource = clickInteractionSource,
+                        indication = null,
+                        onClick = onDropdownToggle
+                    )
+            )
         }
     }
 }
@@ -502,7 +501,7 @@ fun CountryDropdown(
             val flag = countryCode?.let { getFlagEmoji(it) } ?: ""
 
             OutlinedTextField(
-                value = "$flag  $selectedCountry",
+                value = if (selectedCountry.isBlank()) "" else "$flag  $selectedCountry",
                 onValueChange = {},
                 readOnly = true,
                 interactionSource = interactionSource,

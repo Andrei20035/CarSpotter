@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.repository.PostRepositoryImpl
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.repository.PostRepository
+import com.example.carspotter.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,14 +17,27 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FeedViewModel @Inject constructor(
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
     init {
+        loadCurrentUser()
         loadCurrentDayPosts()
         loadFeedPosts()
+    }
+
+    private fun loadCurrentUser() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingCurrentUser = true) }
+            when (val result = userRepository.getCurrentUser()) {
+                is ApiResult.Success -> _uiState.update { it.copy(currentUser = result.data) }
+                is ApiResult.Error -> setError(result.message)
+            }
+            _uiState.update { it.copy(isLoadingCurrentUser = false) }
+        }
     }
 
     private fun loadCurrentDayPosts() {

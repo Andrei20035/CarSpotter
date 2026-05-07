@@ -5,9 +5,11 @@ import com.example.carspotter.MainDispatcherRule
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.model.AuthProvider
+import com.example.carspotter.data.model.User
 import com.example.carspotter.data.remote.dto.auth.AuthResponse
 import com.example.carspotter.data.remote.dto.auth.OnboardingStep
 import com.example.carspotter.data.repository.AuthRepository
+import com.example.carspotter.data.repository.UserRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -20,6 +22,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.time.LocalDate
+import java.util.UUID
 
 /**
  * Aici testăm tot flow-ul real de auth la nivel de ViewModel.
@@ -31,15 +35,28 @@ class AuthViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var authRepository: AuthRepository
+    private lateinit var userRepository: UserRepository
     private lateinit var userPreferences: UserPreferences
     private lateinit var vm: AuthViewModel
+    private val existingUserId = UUID.fromString("11111111-1111-1111-1111-111111111111")
 
     @Before
     fun setup() {
         authRepository = mockk()
+        userRepository = mockk()
         userPreferences = mockk(relaxed = true)
-        vm = AuthViewModel(userPreferences, authRepository)
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Success(existingUser())
+        vm = AuthViewModel(userPreferences, authRepository, userRepository)
     }
+
+    private fun existingUser() = User(
+        id = existingUserId,
+        fullName = "Existing User",
+        phoneNumber = "",
+        birthDate = LocalDate.of(2000, 1, 1),
+        username = "existing_user",
+        country = "Romania"
+    )
 
     // ----------------------------------------------------------------------
     // LOGIN cu email + password (REGULAR)
@@ -68,6 +85,7 @@ class AuthViewModelTest {
         assertNull(state.errorMessage)
         assertEquals(AuthNavigationEvent.ToFeed, state.navigationEvent)
         coVerify(exactly = 1) { userPreferences.saveJwtToken("jwt-feed") }
+        coVerify(exactly = 1) { userPreferences.saveUserId(existingUserId) }
     }
 
     /**
@@ -205,6 +223,27 @@ class AuthViewModelTest {
 
         assertEquals(AuthNavigationEvent.ToFeed, vm.uiState.value.navigationEvent)
         coVerify(exactly = 1) { userPreferences.saveJwtToken("jwt-g") }
+        coVerify(exactly = 1) { userRepository.getCurrentUser() }
+        coVerify(exactly = 1) { userPreferences.saveUserId(existingUserId) }
+    }
+
+    @Test
+    fun `google login cu COMPLETED dar fara profil curent naviga la profile customization`() = runTest {
+        coEvery {
+            authRepository.login(
+                email = null,
+                password = null,
+                googleIdToken = "real-id-token",
+                provider = AuthProvider.GOOGLE
+            )
+        } returns ApiResult.Success(AuthResponse("jwt-g", OnboardingStep.COMPLETED))
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Error("Profile not found")
+
+        vm.loginWithGoogle("real-id-token")
+
+        assertEquals(AuthNavigationEvent.ToProfileCustomization, vm.uiState.value.navigationEvent)
+        coVerify(exactly = 1) { userPreferences.saveJwtToken("jwt-g") }
+        coVerify(exactly = 0) { userPreferences.saveUserId(any()) }
     }
 
     /**

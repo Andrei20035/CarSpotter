@@ -1,7 +1,9 @@
 package com.example.carspotter.features.profile.customization
 
 import android.net.Uri
+import com.example.carspotter.data.remote.dto.car_model.CarModelOption
 import java.time.LocalDate
+import java.util.UUID
 
 sealed class ImageSource {
     data class Local(val uri: Uri, val mimeType: String? = null) : ImageSource()
@@ -15,17 +17,18 @@ sealed class ProfileStep {
 
 data class ProfileCustomizationUiState(
     val allBrands: List<String> = emptyList(),
-    val modelsForSelectedBrand: List<String> = emptyList(),
+    val modelsForSelectedBrand: List<CarModelOption> = emptyList(),
 
     val profilePicture: ImageSource? = null,
     val fullName: String = "",
     val username: String = "",
-    val country: String = "Romania",
+    val country: String = "",
     val birthDate: LocalDate? = null,
 
     val carPicture: ImageSource? = null,
     val selectedBrand: String = "",
     val selectedModel: String = "",
+    val selectedCarModelId: UUID? = null,
     val isFetchingBrands: Boolean = false,
     val isFetchingModels: Boolean = false,
 

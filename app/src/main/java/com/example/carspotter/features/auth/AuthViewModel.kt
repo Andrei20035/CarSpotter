@@ -7,8 +7,8 @@ import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.remote.dto.auth.OnboardingStep
 import com.example.carspotter.data.repository.AuthRepository
+import com.example.carspotter.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -128,13 +129,24 @@ class AuthViewModel @Inject constructor(
                 userPreferences.saveJwtToken(result.data.token)
                 val navTarget = when (result.data.onboardingStep) {
                     OnboardingStep.PROFILE_REQUIRED -> AuthNavigationEvent.ToProfileCustomization
-                    OnboardingStep.COMPLETED -> AuthNavigationEvent.ToFeed
+                    OnboardingStep.COMPLETED -> resolveCompletedProfileDestination()
                 }
                 _uiState.update {
                     it.copy(isLoading = false, navigationEvent = navTarget)
                 }
             }
             is ApiResult.Error -> setError(result.message)
+        }
+    }
+
+    private suspend fun resolveCompletedProfileDestination(): AuthNavigationEvent {
+        return when (val userResult = userRepository.getCurrentUser()) {
+            is ApiResult.Success -> {
+                userPreferences.saveUserId(userResult.data.id)
+                userPreferences.saveUsername(userResult.data.username)
+                AuthNavigationEvent.ToFeed
+            }
+            is ApiResult.Error -> AuthNavigationEvent.ToProfileCustomization
         }
     }
 

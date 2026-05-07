@@ -2,7 +2,7 @@ package com.example.carspotter.core.navigation
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
-    object Login : Screen("login")
+    object Auth : Screen("auth")
     object ProfileCustomization : Screen("profile_customization")
     object Feed : Screen("feed")
     object Settings : Screen("settings")

@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.carspotter.BuildConfig
-import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.ui.components.CustomSnackbar
 import com.example.carspotter.core.ui.components.GradientText
 import com.example.carspotter.core.navigation.Screen
@@ -64,13 +63,13 @@ fun AuthScreen(
         when (uiState.navigationEvent) {
             AuthNavigationEvent.ToProfileCustomization -> {
                 navController.navigate(Screen.ProfileCustomization.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
+                    popUpTo(Screen.Auth.route) { inclusive = true }
                 }
                 viewModel.consumeNavigationEvent()
             }
             AuthNavigationEvent.ToFeed -> {
                 navController.navigate(Screen.Feed.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
+                    popUpTo(Screen.Auth.route) { inclusive = true }
                 }
                 viewModel.consumeNavigationEvent()
             }
