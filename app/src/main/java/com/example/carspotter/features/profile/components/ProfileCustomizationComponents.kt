@@ -16,6 +16,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
@@ -32,10 +34,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,7 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
+import androidx.compose.ui.unit.IntSize
+import coil3.compose.rememberAsyncImagePainter
 import com.example.carspotter.R
 import com.example.carspotter.data.model.CountryItem
 import com.example.carspotter.features.profile.customization.ImageSource
@@ -72,6 +83,11 @@ fun PictureContainer(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let(onImageSelected)
+    }
+    val imageShape = if (currentStep == ProfileStep.Car) {
+        RoundedCornerShape(12.dp)
+    } else {
+        CircleShape
     }
 
     Column(
@@ -108,41 +124,46 @@ fun PictureContainer(
             }
         }
 
-        Box(
-            modifier = when (currentStep) {
+        val containerModifier = when (currentStep) {
                 ProfileStep.Personal -> Modifier
                     .size(140.dp)
-                    .clip(CircleShape)
+                    .clip(imageShape)
 
                 ProfileStep.Car -> Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .aspectRatio(3f/2f)
+                    .clip(imageShape)
             }
-                .background(Color.White.copy(alpha = 0.9f).copy(alpha = 0.9f))
-                .clickable { launcher.launch("image/*") },
+                .background(Color.White.copy(alpha = 0.9f))
+
+        Box(
+            modifier = if (picture == null) {
+                containerModifier.clickable { launcher.launch("image/*") }
+            } else {
+                containerModifier
+            },
             contentAlignment = Alignment.Center
         ) {
             when (picture) {
                 is ImageSource.Local -> {
-                    AsyncImage(
+                    EditableImageContainer(
                         model = picture.uri,
                         contentDescription = "Image",
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(if (currentStep == ProfileStep.Car) RoundedCornerShape(12.dp) else CircleShape),
-                        contentScale = ContentScale.Crop
+                            .fillMaxSize(),
+                        shape = imageShape,
+                        onClick = { launcher.launch("image/*") },
                     )
                 }
 
                 is ImageSource.Remote -> {
-                    AsyncImage(
+                    EditableImageContainer(
                         model = picture.url,
                         contentDescription = "Image",
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(if (currentStep == ProfileStep.Car) RoundedCornerShape(12.dp) else CircleShape),
-                        contentScale = ContentScale.Crop
+                            .fillMaxSize(),
+                        shape = imageShape,
+                        onClick = { launcher.launch("image/*") },
                     )
                 }
 
@@ -164,6 +185,140 @@ fun PictureContainer(
                 }
             }
         }
+    }
+}
+
+data class ImageTransformState(
+    val scale: Float = 1f,
+    val offset: Offset = Offset.Zero,
+)
+
+@Composable
+fun EditableImageContainer(
+    model: Any?,
+    modifier: Modifier = Modifier,
+    shape: Shape,
+    contentDescription: String?,
+    minScale: Float = 1f,
+    maxScale: Float = 3f,
+    onClick: (() -> Unit)? = null,
+    onTransformChanged: ((ImageTransformState) -> Unit)? = null,
+) {
+    val density = LocalDensity.current
+
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var imageSize by remember(model) { mutableStateOf(Size.Unspecified) }
+
+    var scale by remember(model) { mutableFloatStateOf(1f) }
+    var offset by remember(model) { mutableStateOf(Offset.Zero) }
+
+    val painter = rememberAsyncImagePainter(
+        model = model,
+        onSuccess = { state ->
+            imageSize = Size(
+                width = state.result.image.width.toFloat(),
+                height = state.result.image.height.toFloat()
+            )
+        }
+    )
+
+    val drawnImageSize = remember(containerSize, imageSize) {
+        val containerWidth = containerSize.width.toFloat()
+        val containerHeight = containerSize.height.toFloat()
+
+        if (
+            containerWidth > 0f &&
+            containerHeight > 0f &&
+            imageSize.isSpecified &&
+            imageSize.width > 0f &&
+            imageSize.height > 0f
+        ) {
+            val scaleToCover = maxOf(
+                containerWidth / imageSize.width,
+                containerHeight / imageSize.height
+            )
+            val drawnWidth = imageSize.width * scaleToCover
+            val drawnHeight = imageSize.height * scaleToCover
+
+            Size(drawnWidth, drawnHeight)
+        } else {
+            Size(
+                width = containerSize.width.coerceAtLeast(1).toFloat(),
+                height = containerSize.height.coerceAtLeast(1).toFloat()
+            )
+        }
+    }
+
+    fun clampOffset(rawOffset: Offset, currentScale: Float): Offset {
+        val scaledWidth = drawnImageSize.width * currentScale
+        val scaledHeight = drawnImageSize.height * currentScale
+
+        val maxOffsetX = ((scaledWidth - containerSize.width) / 2f).coerceAtLeast(0f)
+        val maxOffsetY = ((scaledHeight - containerSize.height) / 2f).coerceAtLeast(0f)
+
+        return Offset(
+            x = rawOffset.x.coerceIn(-maxOffsetX, maxOffsetX),
+            y = rawOffset.y.coerceIn(-maxOffsetY, maxOffsetY)
+        )
+    }
+
+    fun updateTransform(nextScale: Float, rawOffset: Offset) {
+        val clampedScale = nextScale.coerceIn(minScale, maxScale)
+        val clampedOffset = clampOffset(rawOffset, clampedScale)
+
+        scale = clampedScale
+        offset = clampedOffset
+        onTransformChanged?.invoke(
+            ImageTransformState(
+                scale = clampedScale,
+                offset = clampedOffset
+            )
+        )
+    }
+
+    LaunchedEffect(drawnImageSize, scale) {
+        updateTransform(scale, offset)
+    }
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .onSizeChanged { containerSize = it }
+            .pointerInput(model, drawnImageSize, containerSize) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    updateTransform(
+                        nextScale = scale * zoom,
+                        rawOffset = offset + pan
+                    )
+                }
+            }
+            .pointerInput(model) {
+                detectTapGestures(
+                    onTap = { onClick?.invoke() },
+                    onDoubleTap = {
+                        updateTransform(minScale, Offset.Zero)
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .requiredSize(
+                    width = with(density) { drawnImageSize.width.toDp() },
+                    height = with(density) { drawnImageSize.height.toDp() }
+                )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                    transformOrigin = TransformOrigin.Center
+                }
+        )
     }
 }
 

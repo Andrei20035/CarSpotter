@@ -40,9 +40,18 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getUsersByUsername(username: String): ApiResult<List<User>> {
-        return when (val result = safeApiCall { userApi.getUsersByUsername(username)}) {
-            is ApiResult.Success -> ApiResult.Success(result.data)
-            is ApiResult.Error -> ApiResult.Error(result.message)
+        return try {
+            val response = userApi.getUsersByUsername(username)
+            when {
+                response.isSuccessful -> ApiResult.Success(response.body().orEmpty())
+                response.code() == USER_NOT_FOUND_STATUS -> ApiResult.Success(emptyList())
+                else -> ApiResult.Error(
+                    response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                        ?: "Failed to check username availability"
+                )
+            }
+        } catch (exception: Exception) {
+            ApiResult.Error(exception.message ?: "Failed to check username availability")
         }
     }
 
@@ -69,5 +78,9 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun deleteCurrentUser(): ApiResult<Unit> {
         return safeApiCall { userApi.deleteCurrentUser()}
+    }
+
+    private companion object {
+        const val USER_NOT_FOUND_STATUS = 404
     }
 }

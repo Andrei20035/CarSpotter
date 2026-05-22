@@ -3,12 +3,12 @@ package com.example.carspotter.features.profile.customization
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carspotter.core.image.ImageCompressor
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.remote.dto.user.CreateUserRequest
 import com.example.carspotter.data.remote.dto.user_car.UserCarRequest
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.repository.CarModelRepository
-import com.example.carspotter.data.repository.ImageRepository
 import com.example.carspotter.data.repository.UserCarRepository
 import com.example.carspotter.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +28,7 @@ class ProfileCustomizationViewModel @Inject constructor(
     private val userCarRepository: UserCarRepository,
     private val userPreferences: UserPreferences,
     private val carModelRepository: CarModelRepository,
+    private val imageCompressor: ImageCompressor,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileCustomizationUiState())
@@ -135,6 +136,8 @@ class ProfileCustomizationViewModel @Inject constructor(
             ProfileStep.Personal -> {
                 if (isPersonalInfoValid()) {
                     viewModelScope.launch {
+                        if (!isUsernameAvailable()) return@launch
+
                         loadCarBrands()
                         _uiState.update {
                             it.copy(
@@ -173,12 +176,7 @@ class ProfileCustomizationViewModel @Inject constructor(
 
 
 
-    fun completeProfileSetup(
-        profileImageBytes: ByteArray?,
-        profileImageMime: String?,
-        carImageBytes: ByteArray?,
-        carImageMime: String?
-    ) {
+    fun completeProfileSetup() {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true) }
@@ -193,12 +191,12 @@ class ProfileCustomizationViewModel @Inject constructor(
                     return@launch
                 }
 
-                if (!uploadProfileImageIfNeeded(userId, profileImageBytes, profileImageMime)) {
+                if (!uploadProfileImageIfNeeded()) {
                     _uiState.update { it.copy(isLoading = false) }
                     return@launch
                 }
 
-                if (!createUserCarIfNeeded(userId, carImageBytes, carImageMime)) {
+                if (!createUserCarIfNeeded(userId)) {
                     _uiState.update { it.copy(isLoading = false) }
                     return@launch
                 }
@@ -207,6 +205,27 @@ class ProfileCustomizationViewModel @Inject constructor(
             } catch (e: Exception) {
                 setError(e.message.toString())
                 _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    private suspend fun isUsernameAvailable(): Boolean {
+        _uiState.update { it.copy(isFetchingBrands = true, errorMessage = null) }
+
+        return when (val result = userRepository.getUsersByUsername(_uiState.value.username.trim())) {
+            is ApiResult.Success -> {
+                val isAvailable = result.data.isEmpty()
+                if (!isAvailable) {
+                    setError("Username is already taken")
+                }
+                _uiState.update { it.copy(isFetchingBrands = false) }
+                isAvailable
+            }
+
+            is ApiResult.Error -> {
+                setError(result.message)
+                _uiState.update { it.copy(isFetchingBrands = false) }
+                false
             }
         }
     }
@@ -233,14 +252,11 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createUserCarIfNeeded(
-        userId: UUID,
-        carImageBytes: ByteArray?,
-        carImageMime: String?
-    ): Boolean {
+    private suspend fun createUserCarIfNeeded(userId: UUID): Boolean {
         val brand = _uiState.value.selectedBrand
         val model = _uiState.value.selectedModel
         val carModelId = _uiState.value.selectedCarModelId
+        val carPicture = _uiState.value.carPicture
 
         if(brand.isBlank() && model.isBlank()) {
             return true
@@ -251,11 +267,12 @@ class ProfileCustomizationViewModel @Inject constructor(
             return false
         }
 
-        if (carImageBytes == null) {
+        if (carPicture !is ImageSource.Local) {
             setError("The server currently requires a car image to save your car")
             return false
         }
 
+        val compressedImage = imageCompressor.compressCarImage(carPicture.uri)
         val userCarRequest = UserCarRequest(
             userId = userId,
             carModelId = carModelId,
@@ -263,8 +280,8 @@ class ProfileCustomizationViewModel @Inject constructor(
         )
         return when (val result = userCarRepository.createMyCar(
             request = userCarRequest,
-            imageBytes = carImageBytes,
-            mimeType = carImageMime ?: "image/jpeg"
+            imageBytes = compressedImage.bytes,
+            mimeType = compressedImage.mimeType
         )) {
             is ApiResult.Success -> true
             is ApiResult.Error -> {
@@ -274,17 +291,14 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun uploadProfileImageIfNeeded(
-        userId: UUID,
-        profileImageBytes: ByteArray?,
-        profileImageMime: String?
-    ): Boolean {
-        if (profileImageBytes == null) return true
+    private suspend fun uploadProfileImageIfNeeded(): Boolean {
+        val profilePicture = _uiState.value.profilePicture as? ImageSource.Local ?: return true
 
         return try {
+            val compressedImage = imageCompressor.compressProfileImage(profilePicture.uri)
             when (val result = userRepository.uploadProfilePicture(
-                imageBytes = profileImageBytes,
-                mimeType = profileImageMime ?: "image/jpeg"
+                imageBytes = compressedImage.bytes,
+                mimeType = compressedImage.mimeType
             )) {
                 is ApiResult.Success -> true
                 is ApiResult.Error -> {

@@ -23,6 +23,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -57,6 +58,20 @@ class AuthViewModelTest {
         username = "existing_user",
         country = "Romania"
     )
+
+    private fun jwtWithUserId(userId: UUID): String {
+        val encoder = Base64.getUrlEncoder().withoutPadding()
+        val header = encoder.encodeToString("""{"alg":"none","typ":"JWT"}""".toByteArray())
+        val payload = encoder.encodeToString("""{"userId":"$userId"}""".toByteArray())
+        return "$header.$payload."
+    }
+
+    private fun jwtWithCredentialIdOnly(credentialId: UUID): String {
+        val encoder = Base64.getUrlEncoder().withoutPadding()
+        val header = encoder.encodeToString("""{"alg":"none","typ":"JWT"}""".toByteArray())
+        val payload = encoder.encodeToString("""{"credentialId":"$credentialId"}""".toByteArray())
+        return "$header.$payload."
+    }
 
     // ----------------------------------------------------------------------
     // LOGIN cu email + password (REGULAR)
@@ -105,6 +120,50 @@ class AuthViewModelTest {
             vm.uiState.value.navigationEvent
         )
         coVerify(exactly = 1) { userPreferences.saveJwtToken("jwt-pc") }
+    }
+
+    @Test
+    fun `login regular cu PROFILE_REQUIRED ramane la profile customization chiar daca JWT are userId`() = runTest {
+        val jwt = jwtWithUserId(existingUserId)
+        coEvery { authRepository.login(any(), any(), any(), AuthProvider.REGULAR) } returns
+                ApiResult.Success(AuthResponse(jwt, OnboardingStep.PROFILE_REQUIRED))
+
+        vm.updateEmail("a@b.com"); vm.updatePassword("secret")
+        vm.submitEmailAuth()
+
+        assertEquals(AuthNavigationEvent.ToProfileCustomization, vm.uiState.value.navigationEvent)
+        coVerify(exactly = 1) { userPreferences.saveJwtToken(jwt) }
+        coVerify(exactly = 0) { userPreferences.saveUserId(any()) }
+    }
+
+    @Test
+    fun `login regular cu COMPLETED dar doar credentialId in JWT verifica profilul inainte de Feed`() = runTest {
+        val jwt = jwtWithCredentialIdOnly(UUID.fromString("22222222-2222-2222-2222-222222222222"))
+        coEvery { authRepository.login(any(), any(), any(), AuthProvider.REGULAR) } returns
+                ApiResult.Success(AuthResponse(jwt, OnboardingStep.COMPLETED))
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Error("Profile not found")
+
+        vm.updateEmail("a@b.com"); vm.updatePassword("secret")
+        vm.submitEmailAuth()
+
+        assertEquals(AuthNavigationEvent.ToProfileCustomization, vm.uiState.value.navigationEvent)
+        coVerify(exactly = 1) { userRepository.getCurrentUser() }
+        coVerify(exactly = 0) { userPreferences.saveUserId(any()) }
+    }
+
+    @Test
+    fun `login regular cu COMPLETED si userId in JWT dar fara user pe server naviga la profile customization`() = runTest {
+        val jwt = jwtWithUserId(existingUserId)
+        coEvery { authRepository.login(any(), any(), any(), AuthProvider.REGULAR) } returns
+                ApiResult.Success(AuthResponse(jwt, OnboardingStep.COMPLETED))
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Error("Profile not found")
+
+        vm.updateEmail("a@b.com"); vm.updatePassword("secret")
+        vm.submitEmailAuth()
+
+        assertEquals(AuthNavigationEvent.ToProfileCustomization, vm.uiState.value.navigationEvent)
+        coVerify(exactly = 1) { userRepository.getCurrentUser() }
+        coVerify(exactly = 0) { userPreferences.saveUserId(any()) }
     }
 
     /**

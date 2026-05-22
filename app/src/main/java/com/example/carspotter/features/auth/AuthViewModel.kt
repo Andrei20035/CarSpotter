@@ -9,11 +9,17 @@ import com.example.carspotter.data.remote.dto.auth.OnboardingStep
 import com.example.carspotter.data.repository.AuthRepository
 import com.example.carspotter.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Base64
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -127,9 +133,18 @@ class AuthViewModel @Inject constructor(
         when (result) {
             is ApiResult.Success -> {
                 userPreferences.saveJwtToken(result.data.token)
+                val jwtUserId = result.data.token.extractUserIdFromJwt()
                 val navTarget = when (result.data.onboardingStep) {
-                    OnboardingStep.PROFILE_REQUIRED -> AuthNavigationEvent.ToProfileCustomization
-                    OnboardingStep.COMPLETED -> resolveCompletedProfileDestination()
+                    OnboardingStep.PROFILE_REQUIRED -> {
+                        AuthNavigationEvent.ToProfileCustomization
+                    }
+                    OnboardingStep.COMPLETED -> {
+                        if (jwtUserId != null) {
+                            resolveCompletedProfileDestination(jwtUserId)
+                        } else {
+                            resolveCompletedProfileDestination()
+                        }
+                    }
                 }
                 _uiState.update {
                     it.copy(isLoading = false, navigationEvent = navTarget)
@@ -139,10 +154,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private suspend fun resolveCompletedProfileDestination(): AuthNavigationEvent {
+    private suspend fun resolveCompletedProfileDestination(jwtUserId: UUID? = null): AuthNavigationEvent {
         return when (val userResult = userRepository.getCurrentUser()) {
             is ApiResult.Success -> {
-                userPreferences.saveUserId(userResult.data.id)
+                userPreferences.saveUserId(jwtUserId ?: userResult.data.id)
                 userPreferences.saveUsername(userResult.data.username)
                 AuthNavigationEvent.ToFeed
             }
@@ -175,6 +190,17 @@ class AuthViewModel @Inject constructor(
 
     fun onErrorShown() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun String.extractUserIdFromJwt(): UUID? {
+        return runCatching {
+            val payload = split(".").getOrNull(1) ?: return null
+            val payloadJson = String(Base64.getUrlDecoder().decode(payload), Charsets.UTF_8)
+            val claims = Json.parseToJsonElement(payloadJson).jsonObject
+            val rawUserId = claims["userId"]?.jsonPrimitive?.contentOrNull
+                ?: claims["user_id"]?.jsonPrimitive?.contentOrNull
+            rawUserId?.let(UUID::fromString)
+        }.getOrNull()
     }
 
     // For testing — scoate înainte de release

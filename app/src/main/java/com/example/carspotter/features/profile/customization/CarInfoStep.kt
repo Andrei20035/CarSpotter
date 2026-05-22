@@ -1,6 +1,5 @@
 package com.example.carspotter.features.profile.customization
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +34,6 @@ import com.example.carspotter.features.profile.components.DropdownOverlay
 import com.example.carspotter.features.profile.components.NextStepButton
 import com.example.carspotter.features.profile.components.PictureContainer
 import com.example.carspotter.features.profile.components.SkipCarInfoText
-import java.io.IOException
 import kotlin.toString
 
 @Composable
@@ -54,8 +52,6 @@ fun CarInfoStep(
         }
     }
 
-
-    val context = LocalContext.current
 
     LaunchedEffect(uiState.isUserCreated) {
         if (uiState.isUserCreated) {
@@ -95,16 +91,7 @@ fun CarInfoStep(
                             )
 
                             is ProfileCustomizationAction.Complete -> {
-                                val profileImageBytes =
-                                    uriToByteArray(uiState.profilePicture, context)
-                                val carImageBytes = uriToByteArray(uiState.carPicture, context)
-                                val profileImageMime =
-                                    (uiState.profilePicture as? ImageSource.Local)?.mimeType
-                                val carImageMime =
-                                    (uiState.carPicture as? ImageSource.Local)?.mimeType
-                                viewModel.completeProfileSetup(
-                                    profileImageBytes, profileImageMime, carImageBytes, carImageMime
-                                )
+                                viewModel.completeProfileSetup()
                             }
 
                             is ProfileCustomizationAction.PreviousStep -> viewModel.previousStep()
@@ -228,13 +215,4 @@ private fun CarInfoForm(
         )
     }
 
-}
-
-fun uriToByteArray(imageSource: ImageSource?, context: Context): ByteArray? {
-    return if (imageSource is ImageSource.Local) {
-        context.contentResolver.openInputStream(imageSource.uri)?.use { it.readBytes() }
-            ?: throw IOException("Unable to read image from URI")
-    } else {
-        null
-    }
 }

@@ -132,16 +132,17 @@ fun AuthScreen(
 fun ScreenBackground(
     content: @Composable () -> Unit
 ) {
-    val gradientColors = listOf(Color(0xFF000000), Color(0xFF080C30))
-    val stops = listOf(0.0f, 0.35f)
-
+    val gradientColors = arrayOf(
+        0.0f to Color(0xFF000000),
+        0.4f to Color(0xFF05071B)
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colorStops = stops.zip(gradientColors).toTypedArray(),
-                    startY = 0.0f,
+                    colorStops = gradientColors,
+                    startY = 0f,
                     endY = Float.POSITIVE_INFINITY,
                 )
             )

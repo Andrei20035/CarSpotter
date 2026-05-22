@@ -28,7 +28,8 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
-    private const val BASE_URL = "http://10.0.2.2:8080/api/"
+//    private const val BASE_URL = "http://10.0.2.2:8080/api/"
+    private const val BASE_URL = "http://192.168.0.107:8080/api/"
 
     @Provides
     @Singleton
