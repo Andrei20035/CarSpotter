@@ -1,15 +1,16 @@
 package com.example.carspotter.data.remote.dto.post
 
-import com.example.carspotter.data.model.Post
+import com.example.carspotter.data.model.FeedPost
 
+/** Domain result of a feed page: the items plus the cursor for the next page. */
 data class FeedResult(
-    val posts: List<Post>,
+    val posts: List<FeedPost>,
     val nextCursor: FeedCursor?,
     val hasMore: Boolean
 )
 
 fun FeedResponse.toDomain(): FeedResult = FeedResult(
-    posts = posts,
+    posts = posts.map { it.toDomain() },
     nextCursor = nextCursor,
     hasMore = hasMore
 )

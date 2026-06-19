@@ -1,7 +1,7 @@
 package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.remote.api.PostApi
-import com.example.carspotter.data.remote.dto.post.FeedRequest
+import com.example.carspotter.data.remote.dto.post.FeedCursor
 import com.example.carspotter.data.remote.dto.post.FeedResult
 import com.example.carspotter.data.remote.dto.post.PostEditRequest
 import com.example.carspotter.data.remote.dto.post.PostRequest
@@ -20,7 +20,7 @@ interface PostRepository {
     suspend fun getCurrentDayPostsForUser(): ApiResult<List<Post>>
     suspend fun editPost(postId: UUID, request: PostEditRequest): ApiResult<Unit>
     suspend fun deletePost(postId: UUID): ApiResult<Unit>
-    suspend fun getFeedPosts(feedRequest: FeedRequest): ApiResult<FeedResult>
+    suspend fun getFeedPosts(limit: Int, cursor: FeedCursor? = null): ApiResult<FeedResult>
 }
 @Singleton
 class PostRepositoryImpl @Inject constructor(
@@ -61,8 +61,16 @@ class PostRepositoryImpl @Inject constructor(
         return safeApiCall { postApi.deletePost(postId)}
     }
 
-    override suspend fun getFeedPosts(feedRequest: FeedRequest): ApiResult<FeedResult> {
-        return when(val result = safeApiCall { postApi.getFeedPosts(feedRequest) }) {
+    override suspend fun getFeedPosts(limit: Int, cursor: FeedCursor?): ApiResult<FeedResult> {
+        return when (
+            val result = safeApiCall {
+                postApi.getFeedPosts(
+                    limit = limit,
+                    cursorCreatedAt = cursor?.lastCreatedAt?.toString(),
+                    cursorPostId = cursor?.lastPostId?.toString()
+                )
+            }
+        ) {
             is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
             is ApiResult.Error -> ApiResult.Error(result.message)
         }

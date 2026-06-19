@@ -1,7 +1,6 @@
 package com.example.carspotter.data.remote.api
 
 import com.example.carspotter.data.model.Post
-import com.example.carspotter.data.remote.dto.post.FeedRequest
 import com.example.carspotter.data.remote.dto.post.FeedResponse
 import com.example.carspotter.data.remote.dto.post.PostEditRequest
 import com.example.carspotter.data.remote.dto.post.PostRequest
@@ -40,8 +39,14 @@ interface PostApi {
         @Path("postId") postId: UUID
     ): Response<Unit>
 
+    /**
+     * Cursor-based feed. The first page omits the cursor; subsequent pages pass the
+     * `nextCursor` returned by the previous page as ISO-8601 timestamp + post id.
+     */
     @GET("posts/feed")
     suspend fun getFeedPosts(
-        @Body request: FeedRequest
+        @Query("limit") limit: Int,
+        @Query("cursorCreatedAt") cursorCreatedAt: String? = null,
+        @Query("cursorPostId") cursorPostId: String? = null
     ): Response<FeedResponse>
 }
