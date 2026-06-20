@@ -214,7 +214,7 @@ private fun LeaderboardCard() {
             .clip(RoundedCornerShape(20.dp))
     ) {
         Image(
-            painter = painterResource(R.drawable.leaderboard),
+            painter = painterResource(R.drawable.leaderboard_illustration),
             contentDescription = "Leaderboard",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()

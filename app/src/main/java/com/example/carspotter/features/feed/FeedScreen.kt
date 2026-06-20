@@ -4,36 +4,32 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -48,10 +44,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,22 +61,17 @@ import com.example.carspotter.R
 import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
-import com.example.carspotter.core.ui.components.GradientText
+import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.data.model.FeedPost
+import java.util.Locale
 
-// Background color shared with the rest of the feed surface.
-private val FeedBackground = Color(0xFF05081D)
-
-// TODO(current-day): The server has no `/posts/current-day` endpoint yet, so the
-// "today" carousel below is still hardcoded mock data. It is kept to preserve the
-// screen layout; replace with real data once the endpoint exists (or hide it).
-private data class CurrentDayPost(
-    @DrawableRes val imageRes: Int,
-    val points: Int,
-    val dateTime: String,
-    val carName: String,
-    val location: String,
-)
+// Feed surface color (Figma `feed` background ≈ rgb(5,7,27)).
+private val FeedBackground = Color(0xFF05071B)
+private val FeedAccent = Color(0xFF34D7C4)
+// Discreet dark placeholder shown behind a post image while it loads.
+private val ImagePlaceholder = Color(0xFF11162E)
+// Figma horizontal margin for cards: 375dp image inside the 402dp frame → ~13dp each side.
+private val CardHorizontalPadding = 13.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,19 +81,10 @@ fun FeedScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val currentDayPosts = remember {
-        listOf(
-            CurrentDayPost(R.drawable.feed_image1, 220, "8 Feb 16:42", "Ferrari 488 Pista", "London, UK"),
-            CurrentDayPost(R.drawable.feed_image2, 190, "8 Feb 18:11", "Lamborghini Aventador", "London, UK"),
-            CurrentDayPost(R.drawable.feed_image3, 260, "9 Feb 09:14", "Porsche 911 GT3", "London, UK"),
-            CurrentDayPost(R.drawable.feed_image4, 310, "9 Feb 12:55", "McLaren 720S", "London, UK"),
-        )
-    }
-
     var showPostDialog by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
-    // Trigger pagination when the last few items become visible.
+    // Prefetch the next page once the last few items become visible.
     val shouldLoadMore by remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
@@ -117,194 +101,281 @@ fun FeedScreen(
         PostYourFindDialog(onDismiss = { showPostDialog = false })
     }
 
-    Scaffold(
-        topBar = { FeedTopBar(navController, uiState.currentUser?.profilePicturePath) },
-        containerColor = FeedBackground,
-    ) { padding ->
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FeedBackground),
+    ) {
+        // Top scrim — black fading into the navy surface (matches the design's dark top).
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            // Soft gradient behind the top of the content.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(360.dp)
-                    .background(Brush.verticalGradient(listOf(Color.Black, FeedBackground)))
-            )
+                .fillMaxWidth()
+                .height(statusBarTop + 120.dp)
+                .background(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)))
+        )
 
-            PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize(),
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = CardHorizontalPadding),
+                contentPadding = PaddingValues(
+                    top = statusBarTop + 16.dp,
+                    // Clearance so the floating navbar never covers the last card.
+                    bottom = 140.dp,
+                ),
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    // Bottom padding so the floating navbar never covers the last card.
-                    contentPadding = PaddingValues(top = 58.dp, bottom = 128.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    item(key = "header") {
-                        FeedHeader(
-                            currentDayPosts = currentDayPosts,
-                            onPostYourFind = { showPostDialog = true },
+                when {
+                    uiState.isLoadingInitial -> item(key = "initial-loader") {
+                        CenteredLoader()
+                    }
+
+                    uiState.isEmpty && uiState.errorMessage != null -> item(key = "error") {
+                        FeedMessage(
+                            title = "Couldn't load the feed",
+                            subtitle = uiState.errorMessage,
+                            actionLabel = "Retry",
+                            onAction = { viewModel.retry() },
                         )
                     }
 
-                    when {
-                        uiState.isLoadingInitial -> item(key = "initial-loader") {
-                            CenteredLoader()
-                        }
+                    uiState.isEmpty -> item(key = "empty") {
+                        FeedMessage(
+                            title = "No spots yet",
+                            subtitle = "Be the first to share a find.",
+                        )
+                    }
 
-                        uiState.isEmpty && uiState.errorMessage != null -> item(key = "error") {
-                            FeedMessage(
-                                title = "Couldn't load the feed",
-                                subtitle = uiState.errorMessage,
-                                actionLabel = "Retry",
-                                onAction = { viewModel.retry() },
+                    else -> {
+                        items(uiState.feedPosts, key = { it.id }) { post ->
+                            FeedPostCard(post)
+                            Spacer(modifier = Modifier.height(30.dp))
+                        }
+                        item(key = "footer") {
+                            FeedFooter(
+                                isLoadingMore = uiState.isLoadingMore,
+                                hasMore = uiState.hasMore,
+                                loadMoreError = uiState.errorMessage,
+                                onRetry = { viewModel.retry() },
                             )
-                        }
-
-                        uiState.isEmpty -> item(key = "empty") {
-                            FeedMessage(
-                                title = "No spots yet",
-                                subtitle = "Be the first to share a find.",
-                            )
-                        }
-
-                        else -> {
-                            items(uiState.feedPosts, key = { it.id }) { post ->
-                                Spacer(modifier = Modifier.height(22.dp))
-                                FeedPostCard(post)
-                            }
-                            item(key = "footer") {
-                                FeedFooter(
-                                    isLoadingMore = uiState.isLoadingMore,
-                                    hasMore = uiState.hasMore,
-                                    loadMoreError = uiState.errorMessage,
-                                    onRetry = { viewModel.retry() },
-                                )
-                            }
                         }
                     }
                 }
             }
-
-            FloatingBottomNav(
-                selected = FeedNavItem.Home,
-                onHome = { /* already on feed */ },
-                onLeaderboard = { /* TODO: navigate to leaderboard once the screen exists */ },
-                onPlus = { showPostDialog = true },
-                onActivity = { /* TODO: navigate to activity once the screen exists */ },
-                onProfile = { navController.navigate(Screen.Profile.route) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp),
-            )
         }
+
+        // Bottom scrim behind the floating navbar — surface fading to black.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(146.dp)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+        )
+
+        FloatingBottomNav(
+            selected = FeedNavItem.Home,
+            profilePictureUrl = uiState.currentUser?.profilePicturePath,
+            onHome = { /* already on feed */ },
+            onLeaderboard = { /* TODO: navigate to leaderboard once the screen exists */ },
+            onPlus = { showPostDialog = true },
+            onActivity = { /* TODO: navigate to activity once the screen exists */ },
+            onProfile = { navController.navigate(Screen.Profile.route) },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
+        )
     }
 }
 
 @Composable
-private fun FeedTopBar(navController: NavController, profilePicturePath: String?) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(92.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Black,
-                        Color.Black.copy(alpha = 0.78f),
-                        Color.Black.copy(alpha = 0.25f),
-                        Color.Transparent
+private fun FeedPostCard(post: FeedPost) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // ---- Header: avatar · username · car (+ location) · more ----
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AuthorAvatar(url = post.authorProfilePictureUrl)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = post.username,
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.3.sp,
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                val location = post.locationLabel
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_car),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
                     )
-                )
-            )
-            .padding(top = 16.dp, start = 8.dp, end = 12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = { }) {
-                Icon(
-                    imageVector = Icons.Filled.People,
-                    contentDescription = "Friends",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp)
-                )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        // Design: "Porsche 911," — trailing comma when a location follows.
+                        text = if (location != null) "${post.carName}," else post.carName,
+                        color = Color.White,
+                        fontSize = 13.3.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    // Location resolved from the post's coordinates (town, country). Hidden when
+                    // the backend hasn't geocoded the post yet — never fabricated.
+                    if (location != null) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Image(
+                            painter = painterResource(R.drawable.ic_gps),
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        LocationText(location, modifier = Modifier.weight(1f, fill = false))
+                    }
+                }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            GradientText(
-                text = "Revio",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 30.sp
+            Image(
+                painter = painterResource(R.drawable.ic_three_dots),
+                contentDescription = "More",
+                modifier = Modifier.size(22.dp),
             )
-            Spacer(modifier = Modifier.weight(1f))
-            val profileModifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .clickable { navController.navigate(Screen.Profile.route) }
-            if (profilePicturePath.isNullOrBlank()) {
-                Image(
-                    painter = painterResource(R.drawable.profile_picture),
-                    contentDescription = "Profile",
-                    contentScale = ContentScale.Crop,
-                    modifier = profileModifier
-                )
-            } else {
-                AsyncImage(
-                    model = profilePicturePath,
-                    contentDescription = "Profile",
-                    contentScale = ContentScale.Crop,
-                    modifier = profileModifier,
-                    fallback = painterResource(R.drawable.profile_picture),
-                    error = painterResource(R.drawable.profile_picture)
-                )
-            }
         }
-    }
-}
 
-@Composable
-private fun FeedHeader(
-    currentDayPosts: List<CurrentDayPost>,
-    onPostYourFind: () -> Unit,
-) {
-    val pagerState = rememberPagerState(pageCount = { currentDayPosts.size })
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Spacer(modifier = Modifier.height(42.dp))
+        Spacer(modifier = Modifier.height(9.dp))
 
-        HorizontalPager(
-            state = pagerState,
+        // ---- Main image (375×468 ≈ aspect 0.80, 18dp radius, soft shadow) ----
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
-        ) { page ->
-            CurrentDayCard(currentDayPosts[page])
+                .aspectRatio(375f / 468f)
+                .shadow(elevation = 12.dp, shape = RoundedCornerShape(18.dp), clip = false)
+                .clip(RoundedCornerShape(18.dp))
+                .background(ImagePlaceholder),
+        ) {
+            AsyncImage(
+                model = post.imageUrl,
+                contentDescription = post.carName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            repeat(currentDayPosts.size) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(if (pagerState.currentPage == index) Color.White else Color(0xFF696969))
-                )
-            }
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ---- Engagement row (indented ~12dp from the image edge) ----
+        Row(
+            modifier = Modifier.padding(start = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // TODO(like): wire like toggle to LikeRepository; for now reflects server state only.
+            Image(
+                painter = painterResource(R.drawable.ic_like),
+                contentDescription = "Like",
+                modifier = Modifier
+                    .size(25.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { },
+                    ),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = formatCount(post.likeCount),
+                color = Color.White,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Image(
+                painter = painterResource(R.drawable.ic_comment),
+                contentDescription = "Comment",
+                modifier = Modifier
+                    .size(26.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { },
+                    ),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = formatCount(post.commentCount),
+                color = Color.White,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+            )
         }
 
-        Spacer(modifier = Modifier.height(22.dp))
-        PostYourFindButton(onClick = onPostYourFind)
+        // ---- Caption ----
+        if (!post.caption.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = post.caption,
+                color = Color.White,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+        }
     }
+}
+
+/** Post author's avatar — the real profile picture, falling back to the placeholder. */
+@Composable
+private fun AuthorAvatar(url: String?) {
+    val modifier = Modifier
+        .size(37.dp)
+        .clip(CircleShape)
+    if (url.isNullOrBlank()) {
+        Image(
+            painter = painterResource(R.drawable.profile_picture),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
+        )
+    } else {
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier,
+            placeholder = painterResource(R.drawable.profile_picture),
+            fallback = painterResource(R.drawable.profile_picture),
+            error = painterResource(R.drawable.profile_picture),
+        )
+    }
+}
+
+/** Location label with the design's white→transparent right-fade. */
+@Composable
+private fun LocationText(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        modifier = modifier,
+        fontSize = 13.3.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = TextStyle(
+            brush = Brush.horizontalGradient(
+                0.0f to Color.White,
+                0.85f to Color.White,
+                1.0f to Color.White.copy(alpha = 0f),
+            ),
+        ),
+    )
 }
 
 @Composable
@@ -312,10 +383,10 @@ private fun CenteredLoader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp),
+            .height(260.dp),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(color = Color(0xFF34D7C4))
+        CircularProgressIndicator(color = FeedAccent)
     }
 }
 
@@ -329,7 +400,7 @@ private fun FeedMessage(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 56.dp),
+            .padding(vertical = 80.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -340,7 +411,7 @@ private fun FeedMessage(
         if (actionLabel != null && onAction != null) {
             Spacer(modifier = Modifier.height(12.dp))
             TextButton(onClick = onAction) {
-                Text(actionLabel, color = Color(0xFF34D7C4), fontWeight = FontWeight.SemiBold)
+                Text(actionLabel, color = FeedAccent, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -361,14 +432,14 @@ private fun FeedFooter(
     ) {
         when {
             isLoadingMore -> CircularProgressIndicator(
-                color = Color(0xFF34D7C4),
+                color = FeedAccent,
                 modifier = Modifier.size(28.dp),
             )
 
             loadMoreError != null -> Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Couldn't load more", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
                 TextButton(onClick = onRetry) {
-                    Text("Retry", color = Color(0xFF34D7C4), fontWeight = FontWeight.SemiBold)
+                    Text("Retry", color = FeedAccent, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -378,77 +449,6 @@ private fun FeedFooter(
                 fontSize = 13.sp,
             )
         }
-    }
-}
-
-@Composable
-private fun CurrentDayCard(post: CurrentDayPost) {
-    Row(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(post.imageRes),
-            contentDescription = post.carName,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(20.dp))
-                .fillMaxSize()
-        )
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceEvenly
-        ) {
-            PostMetaRow(R.drawable.ic_points, "${post.points} points")
-            PostMetaRow(R.drawable.ic_clock, post.dateTime)
-            PostMetaRow(R.drawable.ic_car, post.carName)
-            PostMetaRow(R.drawable.ic_gps, post.location)
-        }
-    }
-}
-
-@Composable
-private fun PostMetaRow(@DrawableRes iconRes: Int, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = text,
-            color = Color.White,
-            fontSize = 14.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-@Composable
-private fun PostYourFindButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(Color(0xFFD96570), Color(0xFFA470BE))
-                )
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 42.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Post your find",
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
 
@@ -466,13 +466,13 @@ private fun PostYourFindDialog(onDismiss: () -> Unit) {
                     painter = painterResource(R.drawable.post_with_camera),
                     contentDescription = "Post with camera",
                     modifier = Modifier.size(120.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
                 )
                 Image(
                     painter = painterResource(R.drawable.post_from_gallery),
                     contentDescription = "Post from gallery",
                     modifier = Modifier.size(120.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
                 )
             }
         },
@@ -480,106 +480,18 @@ private fun PostYourFindDialog(onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }
-        }
+        },
     )
 }
 
-@Composable
-private fun FeedPostCard(post: FeedPost) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // TODO(avatar): feed DTO has no author avatar yet — placeholder for now.
-            Image(
-                painter = painterResource(R.drawable.profile_picture),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(post.username, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_car),
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(post.carName, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            Image(
-                painter = painterResource(R.drawable.ic_three_dots),
-                contentDescription = null,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+/** Compact engagement count: 1200 → "1.2K", 1_000_000 → "1M", 341 → "341". */
+private fun formatCount(value: Long): String = when {
+    value >= 1_000_000 -> trimZero(value / 1_000_000.0) + "M"
+    value >= 1_000 -> trimZero(value / 1_000.0) + "K"
+    else -> value.toString()
+}
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.85f)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF11162E)) // discreet dark placeholder behind the image
-        ) {
-            AsyncImage(
-                model = post.imageUrl,
-                contentDescription = post.carName,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.20f))
-                    .padding(vertical = 6.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // TODO(like): wire like toggle to LikeRepository; for now reflects server state only.
-                IconButton(onClick = { }) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_like),
-                        contentDescription = "Like",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(post.likeCount.toString(), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { }) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_comment),
-                        contentDescription = "Comment",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(post.commentCount.toString(), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = "Share",
-                        tint = Color.White
-                    )
-                }
-            }
-        }
-
-        if (!post.caption.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = post.caption,
-                color = Color.White,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-        }
-    }
+private fun trimZero(v: Double): String {
+    val s = String.format(Locale.US, "%.1f", v)
+    return if (s.endsWith(".0")) s.dropLast(2) else s
 }

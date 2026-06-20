@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
+    // Coil 3 needs an explicit network engine to load remote (http) images.
+    implementation(libs.coil.network.okhttp)
     implementation(libs.serialization.converter)
 
     // Network

@@ -28,8 +28,9 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
-//    private const val BASE_URL = "http://10.0.2.2:8080/api/"
-    private const val BASE_URL = "http://192.168.0.107:8080/api/"
+//    private const val BASE_URL = "http://192.168.0.107:8080/api/"
+    // Android emulator → host machine alias. Must match the server's PUBLIC_BASE_URL.
+    private const val BASE_URL = "http://10.0.2.2:8080/api/"
 
     @Provides
     @Singleton

@@ -1,5 +1,7 @@
 package com.example.carspotter.core.ui.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,13 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,21 +23,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.example.carspotter.R
 
+/** Tabs that own a selectable nav slot. The center "+" is intentionally not a tab. */
 enum class FeedNavItem { Home, Leaderboard, Activity, Profile }
 
 /**
- * Floating, compact bottom navigation styled after the design's glassmorphism navbar.
+ * Custom floating bottom navigation matching the Figma `feed` design.
  *
- * Note: Compose has no cheap real backdrop blur, so instead of a performance-heavy
- * RenderEffect we approximate the look with a semi-transparent dark/teal gradient fill,
- * a translucent light border, a subtle top highlight, and a moderate drop shadow.
+ * Not built on Material3 [androidx.compose.material3.NavigationBar] — it's a hand-rolled
+ * glassy pill (362×64, fully rounded) with four icon tabs and an elevated center "+" button.
+ *
+ * Selection is fully driven by [selected] (state is hoisted to the caller), so it survives
+ * recomposition and configuration changes. Active tabs swap to their bolder `*_selected`
+ * vector; the Profile tab shows the user's avatar with a white ring when active.
  */
 @Composable
 fun FloatingBottomNav(
     selected: FeedNavItem,
+    profilePictureUrl: String?,
     onHome: () -> Unit,
     onLeaderboard: () -> Unit,
     onPlus: () -> Unit,
@@ -50,94 +53,137 @@ fun FloatingBottomNav(
     onProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 28.dp),
-        contentAlignment = Alignment.Center,
+            // Pill side margins: Figma 362dp pill within the 402dp frame → ~20dp each side.
+            .padding(horizontal = 20.dp)
+            .shadow(elevation = 22.dp, shape = NavBarShape, clip = false)
+            .clip(NavBarShape)
+            .background(NavBarFill)
+            .border(width = 1.dp, color = NavBarBorder, shape = NavBarShape)
+            .height(64.dp)
+            // Inner padding tuned so the five slots land on the Figma icon centers.
+            .padding(horizontal = 27.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 14.dp, shape = NavBarShape, clip = false)
-                .clip(NavBarShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF123038).copy(alpha = 0.94f),
-                            Color(0xFF0A1330).copy(alpha = 0.94f),
-                        )
-                    )
-                )
-                .border(width = 1.dp, brush = BorderBrush, shape = NavBarShape)
-                .padding(horizontal = 22.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NavIcon(Icons.Filled.Home, "Home", selected == FeedNavItem.Home, onHome)
-            NavIcon(Icons.Filled.Star, "Leaderboard", selected == FeedNavItem.Leaderboard, onLeaderboard)
-            PlusButton(onPlus)
-            NavIcon(Icons.Filled.Notifications, "Activity", selected == FeedNavItem.Activity, onActivity)
-            NavIcon(Icons.Filled.Person, "Profile", selected == FeedNavItem.Profile, onProfile)
-        }
+        NavIcon(
+            res = if (selected == FeedNavItem.Home) R.drawable.home_button_selected else R.drawable.home_button,
+            contentDescription = "Home",
+            onClick = onHome,
+        )
+        NavIcon(
+            res = if (selected == FeedNavItem.Leaderboard) R.drawable.leaderboard_selected else R.drawable.leaderboard,
+            contentDescription = "Leaderboard",
+            onClick = onLeaderboard,
+        )
+        PlusButton(onClick = onPlus)
+        NavIcon(
+            res = if (selected == FeedNavItem.Activity) R.drawable.activity_selected else R.drawable.activity,
+            contentDescription = "Activity",
+            onClick = onActivity,
+        )
+        ProfileTab(
+            profilePictureUrl = profilePictureUrl,
+            selected = selected == FeedNavItem.Profile,
+            onClick = onProfile,
+        )
     }
 }
 
 @Composable
 private fun NavIcon(
-    icon: ImageVector,
+    @DrawableRes res: Int,
     contentDescription: String,
-    selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Box(
+    Image(
+        painter = painterResource(res),
+        contentDescription = contentDescription,
+        // Fit keeps each glyph's intrinsic aspect ratio (e.g. the 21×27 flame) inside the 32dp slot.
+        contentScale = ContentScale.Fit,
         modifier = Modifier
-            .height(64.dp)
+            .size(32.dp)
             .clip(CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            )
-            .padding(8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (selected) Color(0xFF34D7C4) else Color.White.copy(alpha = 0.65f),
-            modifier = Modifier.size(if (selected) 28.dp else 24.dp),
-        )
-    }
+            ),
+    )
+}
+
+/**
+ * Center create-post button. Always identical — no selected state, no icon swap — and
+ * visually elevated via its larger size and own drop shadow.
+ */
+@Composable
+private fun PlusButton(onClick: () -> Unit) {
+    Image(
+        painter = painterResource(R.drawable.plus_button),
+        contentDescription = "Post your find",
+        modifier = Modifier
+            .size(46.dp)
+            .shadow(elevation = 12.dp, shape = CircleShape, clip = false)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+    )
 }
 
 @Composable
-private fun PlusButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(46.dp)
-            .shadow(elevation = 10.dp, shape = CircleShape, clip = false)
-            .clip(CircleShape)
-            .background(
-                Brush.linearGradient(listOf(Color(0xFF2DD4BF), Color(0xFF0E9F8E)))
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Add,
-            contentDescription = "Post your find",
-            tint = Color.White,
-            modifier = Modifier.size(28.dp),
+private fun ProfileTab(
+    profilePictureUrl: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val base = Modifier
+        .size(32.dp)
+        .clip(CircleShape)
+        .then(
+            if (selected) Modifier.border(2.dp, Color.White, CircleShape) else Modifier
+        )
+        .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick,
+        )
+    if (profilePictureUrl.isNullOrBlank()) {
+        Image(
+            painter = painterResource(R.drawable.profile_picture),
+            contentDescription = "Profile",
+            contentScale = ContentScale.Crop,
+            modifier = base,
+        )
+    } else {
+        AsyncImage(
+            model = profilePictureUrl,
+            contentDescription = "Profile",
+            contentScale = ContentScale.Crop,
+            modifier = base,
+            placeholder = painterResource(R.drawable.profile_picture),
+            fallback = painterResource(R.drawable.profile_picture),
+            error = painterResource(R.drawable.profile_picture),
         )
     }
 }
 
+// Fully rounded pill (Figma radius 100 on a 64dp-tall bar → capsule).
 private val NavBarShape = RoundedCornerShape(32.dp)
 
-private val BorderBrush = Brush.verticalGradient(
+// Glassy dark-teal fill. Figma uses a translucent fill + 15px backdrop blur; Compose has no
+// cheap real backdrop blur, so we approximate the sampled teal tint (darker at the edges,
+// brighter in the middle) with a horizontal gradient.
+private val NavBarFill = Brush.horizontalGradient(
     listOf(
-        Color.White.copy(alpha = 0.28f),
-        Color.White.copy(alpha = 0.06f),
+        Color(0xFF00161F),
+        Color(0xFF002F3C),
+        Color(0xFF00161F),
     )
 )
+
+private val NavBarBorder = Color.White.copy(alpha = 0.12f)
