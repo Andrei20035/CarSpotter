@@ -1,19 +1,27 @@
 package com.example.carspotter.data.remote.api
 
 import com.example.carspotter.data.model.Post
+import com.example.carspotter.data.remote.dto.post.CreatePostResponse
 import com.example.carspotter.data.remote.dto.post.FeedResponse
 import com.example.carspotter.data.remote.dto.post.PostEditRequest
-import com.example.carspotter.data.remote.dto.post.PostRequest
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 import java.util.*
 
 interface PostApi {
 
+    /**
+     * Create a post. Multipart: a JSON `metadata` part ([com.example.carspotter.data.remote.dto.post.CreatePostMetadata])
+     * plus the `image` file part. Returns 201 with the new post id.
+     */
+    @Multipart
     @POST("posts")
     suspend fun createPost(
-        @Body postRequest: PostRequest
-    ): Response<Unit>
+        @Part("metadata") metadata: RequestBody,
+        @Part image: MultipartBody.Part,
+    ): Response<CreatePostResponse>
 
     @GET("posts/{postId}")
     suspend fun getPostById(

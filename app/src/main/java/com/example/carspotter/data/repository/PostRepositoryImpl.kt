@@ -1,20 +1,30 @@
 package com.example.carspotter.data.repository
 
 import com.example.carspotter.data.remote.api.PostApi
+import com.example.carspotter.data.remote.dto.post.CreatePostMetadata
 import com.example.carspotter.data.remote.dto.post.FeedCursor
 import com.example.carspotter.data.remote.dto.post.FeedResult
 import com.example.carspotter.data.remote.dto.post.PostEditRequest
-import com.example.carspotter.data.remote.dto.post.PostRequest
 import com.example.carspotter.data.remote.dto.post.toDomain
 import com.example.carspotter.data.model.Post
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.core.network.safeApiCall
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface PostRepository {
-    suspend fun createPost(postRequest: PostRequest): ApiResult<Unit>
+    /** Creates a post via multipart upload (JSON metadata part + image bytes part). */
+    suspend fun createPost(
+        metadata: CreatePostMetadata,
+        imageBytes: ByteArray,
+        mimeType: String,
+    ): ApiResult<Unit>
     suspend fun getPostById(postId: UUID): ApiResult<Post>
     suspend fun getAllPosts(): ApiResult<List<Post>>
     suspend fun getCurrentDayPostsForUser(): ApiResult<List<Post>>
@@ -27,8 +37,24 @@ class PostRepositoryImpl @Inject constructor(
     private val postApi: PostApi
 ) : PostRepository {
 
-    override suspend fun createPost(postRequest: PostRequest): ApiResult<Unit> {
-        return safeApiCall { postApi.createPost(postRequest) }
+    private val json = Json { ignoreUnknownKeys = true }
+
+    override suspend fun createPost(
+        metadata: CreatePostMetadata,
+        imageBytes: ByteArray,
+        mimeType: String,
+    ): ApiResult<Unit> {
+        val metadataPart = json.encodeToString(metadata)
+            .toRequestBody("application/json".toMediaType())
+        val imagePart = MultipartBody.Part.createFormData(
+            name = "image",
+            filename = "post.jpg",
+            body = imageBytes.toRequestBody(mimeType.toMediaTypeOrNull()),
+        )
+        return when (val result = safeApiCall { postApi.createPost(metadataPart, imagePart) }) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Error -> ApiResult.Error(result.message)
+        }
     }
 
     override suspend fun getPostById(postId: UUID): ApiResult<Post> {

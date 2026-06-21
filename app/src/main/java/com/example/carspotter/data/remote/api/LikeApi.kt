@@ -1,8 +1,7 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.model.User
+import com.example.carspotter.data.remote.dto.like.LikeStatusDto
 import retrofit2.Response
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -10,18 +9,18 @@ import java.util.UUID
 
 interface LikeApi {
 
-    @POST("likes/{postId}")
-    suspend fun likePost(
+    /**
+     * Toggle the current user's like on a post. The server flips the state and returns the
+     * authoritative [LikeStatusDto] (new liked flag + total count).
+     */
+    @POST("posts/{postId}/likes")
+    suspend fun toggleLike(
         @Path("postId") postId: UUID
-    ): Response<Unit>
+    ): Response<LikeStatusDto>
 
-    @DELETE("likes/{postId}")
-    suspend fun unlikePost(
+    /** Current like state for a post (liked-by-current-user + total count). */
+    @GET("posts/{postId}/likes")
+    suspend fun getLikeStatus(
         @Path("postId") postId: UUID
-    ): Response<Unit>
-
-    @GET("likes/posts/{postId}")
-    suspend fun getLikesForPost(
-        @Path("postId") postId: UUID
-    ): Response<List<User>>
+    ): Response<LikeStatusDto>
 }

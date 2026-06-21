@@ -1,5 +1,6 @@
 package com.example.carspotter.core.ui.components
 
+import android.graphics.BlurMaskFilter
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,11 +21,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
@@ -58,7 +64,15 @@ fun FloatingBottomNav(
             .fillMaxWidth()
             // Pill side margins: Figma 362dp pill within the 402dp frame → ~20dp each side.
             .padding(horizontal = 20.dp)
-            .shadow(elevation = 22.dp, shape = NavBarShape, clip = false)
+            // Figma drop shadow: #000000 @25%, X 0 / Y -8 (upward), blur 30, spread 0.
+            // Drawn behind (unclipped) so it doesn't affect the measured size or layout.
+            .glassDropShadow(
+                cornerRadius = NavBarCornerRadius,
+                color = Color.Black.copy(alpha = 0.25f),
+                blur = 30.dp,
+                offsetX = 0.dp,
+                offsetY = (-8).dp,
+            )
             .clip(NavBarShape)
             .background(NavBarFill)
             .border(width = 1.dp, color = NavBarBorder, shape = NavBarShape)
@@ -105,7 +119,6 @@ private fun NavIcon(
         contentScale = ContentScale.Fit,
         modifier = Modifier
             .size(32.dp)
-            .clip(CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -173,17 +186,53 @@ private fun ProfileTab(
 }
 
 // Fully rounded pill (Figma radius 100 on a 64dp-tall bar → capsule).
-private val NavBarShape = RoundedCornerShape(32.dp)
+private val NavBarCornerRadius = 32.dp
+private val NavBarShape = RoundedCornerShape(NavBarCornerRadius)
 
-// Glassy dark-teal fill. Figma uses a translucent fill + 15px backdrop blur; Compose has no
-// cheap real backdrop blur, so we approximate the sampled teal tint (darker at the edges,
-// brighter in the middle) with a horizontal gradient.
+// Glassy dark-teal fill. Figma layers a near-transparent fill over a 30px *backdrop* blur.
+// Compose has no clean first-party backdrop blur, so the production-safe equivalent is a
+// translucent dark fill: we keep the sampled teal tint (darker at the edges, brighter in the
+// middle) but drop its alpha so the dark feed behind reads through for a frosted-glass look.
+private const val NavBarFillAlpha = 0.72f
 private val NavBarFill = Brush.horizontalGradient(
     listOf(
-        Color(0xFF00161F),
-        Color(0xFF002F3C),
-        Color(0xFF00161F),
+        Color(0xFF00161F).copy(alpha = NavBarFillAlpha),
+        Color(0xFF002F3C).copy(alpha = NavBarFillAlpha),
+        Color(0xFF00161F).copy(alpha = NavBarFillAlpha),
     )
 )
 
 private val NavBarBorder = Color.White.copy(alpha = 0.12f)
+
+/**
+ * Draws a soft, colored drop shadow behind the composable, matching Figma's shadow controls
+ * (color, X/Y offset, blur). Unlike [androidx.compose.ui.draw.shadow] this supports an arbitrary
+ * color and an upward (negative Y) offset. It's a pure draw operation — no layout/size impact —
+ * and is rendered before the clip so the soft halo can extend beyond the pill bounds.
+ */
+private fun Modifier.glassDropShadow(
+    cornerRadius: Dp,
+    color: Color,
+    blur: Dp,
+    offsetX: Dp,
+    offsetY: Dp,
+): Modifier = drawBehind {
+    val frameworkPaint = Paint().asFrameworkPaint().apply {
+        isAntiAlias = true
+        this.color = color.toArgb()
+        val blurPx = blur.toPx()
+        if (blurPx > 0f) maskFilter = BlurMaskFilter(blurPx, BlurMaskFilter.Blur.NORMAL)
+    }
+    val r = cornerRadius.toPx()
+    val dx = offsetX.toPx()
+    val dy = offsetY.toPx()
+    drawContext.canvas.nativeCanvas.drawRoundRect(
+        dx,
+        dy,
+        size.width + dx,
+        size.height + dy,
+        r,
+        r,
+        frameworkPaint,
+    )
+}

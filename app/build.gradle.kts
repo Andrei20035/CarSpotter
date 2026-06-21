@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.compose.foundation)
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.location)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.serialization.json)

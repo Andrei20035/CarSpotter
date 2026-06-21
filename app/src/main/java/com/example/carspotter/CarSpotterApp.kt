@@ -3,6 +3,7 @@ package com.example.carspotter
 import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,15 +27,22 @@ fun CarSpotterAppUI(modifier: Modifier = Modifier) {
     val startVm: StartDestinationViewModel = hiltViewModel()
     val start by startVm.startDestination.collectAsState()
 
-    Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
-        when (val s = start) {
-            null -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    // The Surface stays full-bleed so the theme background fills the whole window — including
+    // behind the system bars — which keeps the system-chosen status/nav icon colors legible.
+    // `systemBarsPadding()` then insets the actual screen content so nothing draws under the
+    // status bar or the Android navigation bar. Consuming the insets here means per-screen
+    // inset modifiers (statusBarsPadding/navigationBarsPadding) read 0 downstream — no double padding.
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+            when (val s = start) {
+                null -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+                else -> CarSpotterNavigation(navController, s)
             }
-            else -> CarSpotterNavigation(navController, s)
         }
     }
 }

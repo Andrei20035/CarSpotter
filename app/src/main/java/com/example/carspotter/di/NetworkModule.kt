@@ -28,9 +28,9 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://carspotter-server.onrender.com/api/"
-//    private const val BASE_URL = "http://192.168.0.107:8080/api/"
-    // Android emulator → host machine alias. Must match the server's PUBLIC_BASE_URL.
-    private const val BASE_URL = "http://10.0.2.2:8080/api/"
+//    Android emulator → host machine alias: "http://10.0.2.2:8080/api/"
+    // Physical phone on the same Wi-Fi → host machine's LAN IP. Must match the server's PUBLIC_BASE_URL.
+    private const val BASE_URL = "http://192.168.0.107:8080/api/"
 
     @Provides
     @Singleton
@@ -140,6 +140,12 @@ object NetworkModule {
     @Singleton
     fun providePostApi(retrofit: Retrofit): PostApi {
         return retrofit.create(PostApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReportApi(retrofit: Retrofit): ReportApi {
+        return retrofit.create(ReportApi::class.java)
     }
 
     @Provides

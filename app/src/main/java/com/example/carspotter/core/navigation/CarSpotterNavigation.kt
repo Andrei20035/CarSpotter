@@ -2,9 +2,12 @@ package com.example.carspotter.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.carspotter.features.feed.FeedScreen
+import com.example.carspotter.features.upload.ImageUploadScreen
 import com.example.carspotter.features.auth.AuthScreen
 import com.example.carspotter.features.onboarding.OnboardingScreen
 import com.example.carspotter.features.profile.dashboard.ProfileDashboardScreen
@@ -55,6 +58,19 @@ fun CarSpotterNavigation(
             ProfileDashboardScreen(
                 navController = navController
             )
+        }
+
+        composable(
+            route = Screen.ImageUpload.route,
+            arguments = listOf(
+                navArgument(Screen.ImageUpload.ARG_IMAGE_URI) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            ),
+        ) {
+            // The image URI nav arg is read by ImageUploadViewModel via SavedStateHandle.
+            ImageUploadScreen(navController = navController)
         }
 
         composable(Screen.Settings.route) {

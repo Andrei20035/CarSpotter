@@ -1,22 +1,29 @@
 package com.example.carspotter.data.remote.api
 
-import com.example.carspotter.data.model.Comment
+import com.example.carspotter.data.remote.dto.comment.CommentDto
 import com.example.carspotter.data.remote.dto.comment.CommentRequest
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Path
 import java.util.UUID
 
 interface CommentApi {
 
-    @GET("comments/{postId}")
+    /** Comments for a post, oldest-first (as ordered by the server). */
+    @GET("posts/{postId}/comments")
     suspend fun getCommentsForPost(
         @Path("postId") postId: UUID
-    ): Response<List<Comment>>
+    ): Response<List<CommentDto>>
 
-    @POST("comments")
+    /** Add a comment to a post; returns the created comment (with author info) on 201. */
+    @POST("posts/{postId}/comments")
     suspend fun addComment(
-        @Body commentRequest: CommentRequest
-    ): Response<Unit>
+        @Path("postId") postId: UUID,
+        @Body request: CommentRequest,
+    ): Response<CommentDto>
 
     @DELETE("comments/{commentId}")
     suspend fun deleteComment(

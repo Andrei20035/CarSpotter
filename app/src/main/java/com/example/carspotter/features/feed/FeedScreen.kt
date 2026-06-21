@@ -1,11 +1,20 @@
 package com.example.carspotter.features.feed
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,7 +36,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -47,22 +55,36 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
+import java.io.File
 import com.example.carspotter.core.navigation.Screen
+import com.example.carspotter.core.ui.components.CustomSnackbar
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
 import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.data.model.FeedPost
+import com.example.carspotter.data.model.ReportReason
+import com.example.carspotter.features.feed.components.CarLocationRow
+import com.example.carspotter.features.feed.components.CommentsSheet
+import com.example.carspotter.features.feed.components.FeedPostSkeleton
+import com.example.carspotter.features.feed.components.PostOptionsMenu
+import com.example.carspotter.features.feed.components.PostYourFindOverlay
+import com.example.carspotter.features.feed.components.SubmitReportDialog
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 // Feed surface color (Figma `feed` background ≈ rgb(5,7,27)).
@@ -72,6 +94,8 @@ private val FeedAccent = Color(0xFF34D7C4)
 private val ImagePlaceholder = Color(0xFF11162E)
 // Figma horizontal margin for cards: 375dp image inside the 402dp frame → ~13dp each side.
 private val CardHorizontalPadding = 13.dp
+// Number of shimmer skeleton cards shown during the initial feed load.
+private const val SKELETON_COUNT = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,8 +104,48 @@ fun FeedScreen(
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     var showPostDialog by remember { mutableStateOf(false) }
+
+    // Capture (camera) or pick (gallery) a photo, then hand it to the image-upload screen.
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            navController.navigate(Screen.ImageUpload.createRoute(uri.toString()))
+        }
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val uri = pendingCameraUri
+        if (success && uri != null) {
+            navController.navigate(Screen.ImageUpload.createRoute(uri.toString()))
+        }
+    }
+
+    // "Submit Report" confirmation — driven entirely by the ViewModel (UDF).
+    uiState.reportDialog?.let { dialog ->
+        SubmitReportDialog(
+            reason = dialog.reason,
+            isSubmitting = dialog.isSubmitting,
+            onConfirm = { viewModel.confirmReport() },
+            onDismiss = { viewModel.dismissReportDialog() },
+        )
+    }
+
+    // Instagram-style comments overlay — opens over the feed, driven by the ViewModel (UDF).
+    uiState.commentsSheet?.let { sheet ->
+        CommentsSheet(
+            state = sheet,
+            onDismiss = { viewModel.closeComments() },
+            onDraftChange = { viewModel.onCommentDraftChange(it) },
+            onSend = { viewModel.submitComment() },
+            onRetry = { viewModel.retryLoadComments() },
+        )
+    }
 
     val listState = rememberLazyListState()
     // Prefetch the next page once the last few items become visible.
@@ -98,7 +162,19 @@ fun FeedScreen(
     }
 
     if (showPostDialog) {
-        PostYourFindDialog(onDismiss = { showPostDialog = false })
+        PostYourFindOverlay(
+            onCamera = {
+                showPostDialog = false
+                val uri = createCameraImageUri(context)
+                pendingCameraUri = uri
+                cameraLauncher.launch(uri)
+            },
+            onGallery = {
+                showPostDialog = false
+                galleryLauncher.launch("image/*")
+            },
+            onDismiss = { showPostDialog = false },
+        )
     }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -127,14 +203,15 @@ fun FeedScreen(
                     .fillMaxSize()
                     .padding(horizontal = CardHorizontalPadding),
                 contentPadding = PaddingValues(
-                    top = statusBarTop + 16.dp,
+                    top = 16.dp,
                     // Clearance so the floating navbar never covers the last card.
                     bottom = 140.dp,
                 ),
             ) {
                 when {
-                    uiState.isLoadingInitial -> item(key = "initial-loader") {
-                        CenteredLoader()
+                    uiState.isLoadingInitial -> items(SKELETON_COUNT, key = { "skeleton-$it" }) {
+                        FeedPostSkeleton()
+                        Spacer(modifier = Modifier.height(30.dp))
                     }
 
                     uiState.isEmpty && uiState.errorMessage != null -> item(key = "error") {
@@ -155,7 +232,15 @@ fun FeedScreen(
 
                     else -> {
                         items(uiState.feedPosts, key = { it.id }) { post ->
-                            FeedPostCard(post)
+                            FeedPostCard(
+                                post = post,
+                                onLikeToggle = { viewModel.onLikeToggle(post.id) },
+                                onOpenComments = { viewModel.openComments(post.id) },
+                                onShare = { sharePost(context, post) },
+                                onReportReasonSelected = { reason ->
+                                    viewModel.onReportReasonSelected(post.id, reason)
+                                },
+                            )
                             Spacer(modifier = Modifier.height(30.dp))
                         }
                         item(key = "footer") {
@@ -193,11 +278,33 @@ fun FeedScreen(
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
         )
+
+        // One-shot feedback (e.g. report submitted) — auto-dismisses after a short delay.
+        uiState.userMessage?.let { message ->
+            LaunchedEffect(message) {
+                delay(3000)
+                viewModel.consumeUserMessage()
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 96.dp),
+            ) {
+                CustomSnackbar(message = message)
+            }
+        }
     }
 }
 
 @Composable
-private fun FeedPostCard(post: FeedPost) {
+private fun FeedPostCard(
+    post: FeedPost,
+    onLikeToggle: () -> Unit,
+    onOpenComments: () -> Unit,
+    onShare: () -> Unit,
+    onReportReasonSelected: (ReportReason) -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // ---- Header: avatar · username · car (+ location) · more ----
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -210,41 +317,14 @@ private fun FeedPostCard(post: FeedPost) {
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.3.sp,
                 )
-                Spacer(modifier = Modifier.height(3.dp))
-                val location = post.locationLabel
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_car),
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        // Design: "Porsche 911," — trailing comma when a location follows.
-                        text = if (location != null) "${post.carName}," else post.carName,
-                        color = Color.White,
-                        fontSize = 13.3.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    // Location resolved from the post's coordinates (town, country). Hidden when
-                    // the backend hasn't geocoded the post yet — never fabricated.
-                    if (location != null) {
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Image(
-                            painter = painterResource(R.drawable.ic_gps),
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        LocationText(location, modifier = Modifier.weight(1f, fill = false))
-                    }
-                }
+                CarLocationRow(
+                    carName = post.carName,
+                    location = post.locationLabel,
+                )
             }
-            Image(
-                painter = painterResource(R.drawable.ic_three_dots),
-                contentDescription = "More",
-                modifier = Modifier.size(22.dp),
+            PostOptionsMenu(
+                onShare = onShare,
+                onReportReasonSelected = onReportReasonSelected,
             )
         }
 
@@ -270,50 +350,24 @@ private fun FeedPostCard(post: FeedPost) {
         Spacer(modifier = Modifier.height(14.dp))
 
         // ---- Engagement row (indented ~12dp from the image edge) ----
+        // Each count sits in a small adaptive-width slot so the comment group doesn't shift on
+        // small count changes (0↔1, 1↔9), while still staying compact for single digits.
         Row(
             modifier = Modifier.padding(start = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // TODO(like): wire like toggle to LikeRepository; for now reflects server state only.
-            Image(
-                painter = painterResource(R.drawable.ic_like),
-                contentDescription = "Like",
-                modifier = Modifier
-                    .size(25.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { },
-                    ),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = formatCount(post.likeCount),
-                color = Color.White,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Image(
-                painter = painterResource(R.drawable.ic_comment),
-                contentDescription = "Comment",
-                modifier = Modifier
-                    .size(26.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { },
-                    ),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = formatCount(post.commentCount),
-                color = Color.White,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-            )
+            InteractionItem(count = post.likeCount, onClick = onLikeToggle) {
+                // Icon is driven by this post's own server-backed liked state — never hardcoded.
+                LikeIcon(liked = post.likedByCurrentUser)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            InteractionItem(count = post.commentCount, onClick = onOpenComments) {
+                Image(
+                    painter = painterResource(R.drawable.comment),
+                    contentDescription = "Comments",
+                    modifier = Modifier.size(26.dp),
+                )
+            }
         }
 
         // ---- Caption ----
@@ -331,6 +385,94 @@ private fun FeedPostCard(post: FeedPost) {
             )
         }
     }
+}
+
+/**
+ * A single feed interaction (icon + count) laid out as `Row { Icon; CountText }`. The whole row
+ * is the tap target. The count lives in a small fixed-width slot sized by [interactionCountWidth]
+ * so neighbouring groups don't jump as the count changes between small values.
+ */
+@Composable
+private fun InteractionItem(
+    count: Long,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+) {
+    Row(
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick,
+        ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon()
+        Spacer(modifier = Modifier.width(6.dp))
+        Box(modifier = Modifier.width(interactionCountWidth(count))) {
+            Text(
+                text = formatCount(count),
+                color = Color.White,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                maxLines = 1,
+                // Tabular figures keep each digit the same width, so the slot stays stable.
+                style = TextStyle(fontFeatureSettings = "tnum"),
+            )
+        }
+    }
+}
+
+/**
+ * Adaptive width for a count slot, sized to the widest string the count can format to in each
+ * magnitude band (matching [formatCount]). Small counts get a compact slot — no large empty gap —
+ * while larger counts expand in controlled steps so the layout never visibly jumps on a 0↔1 change.
+ */
+private fun interactionCountWidth(count: Long): Dp = when {
+    count < 10 -> 16.dp       // "0".."9"
+    count < 100 -> 24.dp      // "10".."99"
+    count < 1_000 -> 32.dp    // "100".."999"
+    count < 10_000 -> 40.dp   // "1K".."9.9K"
+    count < 100_000 -> 48.dp  // "10K".."99.9K"
+    else -> 56.dp             // "100K"+, "1M"+
+}
+
+/**
+ * Like icon. Shows `like_selected` when liked, `like` otherwise. On a like (false→true) it plays a
+ * subtle pop — a quick scale-up that springs back — for premium tactile feedback. Unliking does not
+ * animate, and the initial liked state on first composition is not animated. The tap is handled by
+ * the enclosing [InteractionItem].
+ */
+@Composable
+private fun LikeIcon(
+    liked: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val scale = remember { Animatable(1f) }
+    var initialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(liked) {
+        if (!initialized) {
+            initialized = true
+            return@LaunchedEffect
+        }
+        if (liked) {
+            scale.animateTo(1.22f, animationSpec = tween(durationMillis = 110, easing = FastOutSlowInEasing))
+            scale.animateTo(1f, animationSpec = spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMedium))
+        }
+    }
+
+    Image(
+        painter = painterResource(if (liked) R.drawable.like_selected else R.drawable.like),
+        contentDescription = if (liked) "Unlike" else "Like",
+        modifier = modifier
+            .size(30.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
+    )
 }
 
 /** Post author's avatar — the real profile picture, falling back to the placeholder. */
@@ -356,37 +498,6 @@ private fun AuthorAvatar(url: String?) {
             fallback = painterResource(R.drawable.profile_picture),
             error = painterResource(R.drawable.profile_picture),
         )
-    }
-}
-
-/** Location label with the design's white→transparent right-fade. */
-@Composable
-private fun LocationText(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        modifier = modifier,
-        fontSize = 13.3.sp,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = TextStyle(
-            brush = Brush.horizontalGradient(
-                0.0f to Color.White,
-                0.85f to Color.White,
-                1.0f to Color.White.copy(alpha = 0f),
-            ),
-        ),
-    )
-}
-
-@Composable
-private fun CenteredLoader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(260.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator(color = FeedAccent)
     }
 }
 
@@ -452,36 +563,33 @@ private fun FeedFooter(
     }
 }
 
-@Composable
-private fun PostYourFindDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Post your find") },
-        text = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.post_with_camera),
-                    contentDescription = "Post with camera",
-                    modifier = Modifier.size(120.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-                Image(
-                    painter = painterResource(R.drawable.post_from_gallery),
-                    contentDescription = "Post from gallery",
-                    modifier = Modifier.size(120.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
-        },
-    )
+/**
+ * Creates a FileProvider-backed URI in the cache for the camera app to write a capture into.
+ * Mirrors the authority declared in the manifest (`${applicationId}.fileprovider`).
+ */
+private fun createCameraImageUri(context: Context): Uri {
+    val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+    val file = File.createTempFile("capture_", ".jpg", dir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/**
+ * Fires the standard Android share sheet (`ACTION_SEND`) for a post — the car label and a link
+ * to the photo. This is a client-only action; no backend call is involved.
+ */
+private fun sharePost(context: Context, post: FeedPost) {
+    val shareText = buildString {
+        append("Check out this ${post.carName} on CarSpotter")
+        if (post.imageUrl.isNotBlank()) {
+            append("\n")
+            append(post.imageUrl)
+        }
+    }
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+    context.startActivity(Intent.createChooser(sendIntent, "Share post"))
 }
 
 /** Compact engagement count: 1200 → "1.2K", 1_000_000 → "1M", 341 → "341". */

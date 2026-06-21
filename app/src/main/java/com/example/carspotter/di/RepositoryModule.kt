@@ -14,8 +14,12 @@ import com.example.carspotter.data.repository.ImageRepository
 import com.example.carspotter.data.repository.ImageRepositoryImpl
 import com.example.carspotter.data.repository.LikeRepository
 import com.example.carspotter.data.repository.LikeRepositoryImpl
+import com.example.carspotter.data.repository.LocationRepository
+import com.example.carspotter.data.repository.LocationRepositoryImpl
 import com.example.carspotter.data.repository.PostRepository
 import com.example.carspotter.data.repository.PostRepositoryImpl
+import com.example.carspotter.data.repository.ReportRepository
+import com.example.carspotter.data.repository.ReportRepositoryImpl
 import com.example.carspotter.data.repository.UserCarRepository
 import com.example.carspotter.data.repository.UserCarRepositoryImpl
 import com.example.carspotter.data.repository.UserRepository
@@ -77,6 +81,18 @@ abstract class RepositoryModule {
     abstract fun bindPostRepository(
         impl: PostRepositoryImpl
     ): PostRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReportRepository(
+        impl: ReportRepositoryImpl
+    ): ReportRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLocationRepository(
+        impl: LocationRepositoryImpl
+    ): LocationRepository
 
     @Binds
     @Singleton
