@@ -2,9 +2,6 @@ package com.example.carspotter.features.feed
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -20,16 +17,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -65,13 +58,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
-import java.io.File
 import com.example.carspotter.core.navigation.Screen
+import com.example.carspotter.core.ui.components.AppScreenBackground
 import com.example.carspotter.core.ui.components.CustomSnackbar
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
@@ -82,13 +74,11 @@ import com.example.carspotter.features.feed.components.CarLocationRow
 import com.example.carspotter.features.feed.components.CommentsSheet
 import com.example.carspotter.features.feed.components.FeedPostSkeleton
 import com.example.carspotter.features.feed.components.PostOptionsMenu
-import com.example.carspotter.features.feed.components.PostYourFindOverlay
 import com.example.carspotter.features.feed.components.SubmitReportDialog
+import com.example.carspotter.features.feed.components.rememberPostCreationLauncher
 import kotlinx.coroutines.delay
 import java.util.Locale
 
-// Feed surface color (Figma `feed` background ≈ rgb(5,7,27)).
-private val FeedBackground = Color(0xFF05071B)
 private val FeedAccent = Color(0xFF34D7C4)
 // Discreet dark placeholder shown behind a post image while it loads.
 private val ImagePlaceholder = Color(0xFF11162E)
@@ -105,26 +95,7 @@ fun FeedScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-
-    var showPostDialog by remember { mutableStateOf(false) }
-
-    // Capture (camera) or pick (gallery) a photo, then hand it to the image-upload screen.
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        if (uri != null) {
-            navController.navigate(Screen.ImageUpload.createRoute(uri.toString()))
-        }
-    }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-    ) { success ->
-        val uri = pendingCameraUri
-        if (success && uri != null) {
-            navController.navigate(Screen.ImageUpload.createRoute(uri.toString()))
-        }
-    }
+    val openPostCreation = rememberPostCreationLauncher(navController)
 
     // "Submit Report" confirmation — driven entirely by the ViewModel (UDF).
     uiState.reportDialog?.let { dialog ->
@@ -161,37 +132,44 @@ fun FeedScreen(
         if (shouldLoadMore) viewModel.loadNextPage()
     }
 
-    if (showPostDialog) {
-        PostYourFindOverlay(
-            onCamera = {
-                showPostDialog = false
-                val uri = createCameraImageUri(context)
-                pendingCameraUri = uri
-                cameraLauncher.launch(uri)
-            },
-            onGallery = {
-                showPostDialog = false
-                galleryLauncher.launch("image/*")
-            },
-            onDismiss = { showPostDialog = false },
-        )
-    }
+    AppScreenBackground(
+        foreground = {
+            FloatingBottomNav(
+                selected = FeedNavItem.Home,
+                profilePictureUrl = uiState.currentUser?.profilePicturePath,
+                onHome = { /* already on feed */ },
+                onLeaderboard = {
+                    navController.navigate(Screen.Leaderboard.route) {
+                        popUpTo(Screen.Feed.route)
+                        launchSingleTop = true
+                    }
+                },
+                onPlus = openPostCreation,
+                onActivity = { /* TODO: navigate to activity once the screen exists */ },
+                onProfile = { navController.navigate(Screen.Profile.route) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+            )
 
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(FeedBackground),
+            // One-shot feedback (e.g. report submitted) — auto-dismisses after a short delay.
+            uiState.userMessage?.let { message ->
+                LaunchedEffect(message) {
+                    delay(3000)
+                    viewModel.consumeUserMessage()
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 96.dp),
+                ) {
+                    CustomSnackbar(message = message)
+                }
+            }
+        },
     ) {
-        // Top scrim — black fading into the navy surface (matches the design's dark top).
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(statusBarTop + 120.dp)
-                .background(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)))
-        )
-
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -253,45 +231,6 @@ fun FeedScreen(
                         }
                     }
                 }
-            }
-        }
-
-        // Bottom scrim behind the floating navbar — surface fading to black.
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(146.dp)
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
-        )
-
-        FloatingBottomNav(
-            selected = FeedNavItem.Home,
-            profilePictureUrl = uiState.currentUser?.profilePicturePath,
-            onHome = { /* already on feed */ },
-            onLeaderboard = { /* TODO: navigate to leaderboard once the screen exists */ },
-            onPlus = { showPostDialog = true },
-            onActivity = { /* TODO: navigate to activity once the screen exists */ },
-            onProfile = { navController.navigate(Screen.Profile.route) },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
-        )
-
-        // One-shot feedback (e.g. report submitted) — auto-dismisses after a short delay.
-        uiState.userMessage?.let { message ->
-            LaunchedEffect(message) {
-                delay(3000)
-                viewModel.consumeUserMessage()
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 96.dp),
-            ) {
-                CustomSnackbar(message = message)
             }
         }
     }
@@ -561,16 +500,6 @@ private fun FeedFooter(
             )
         }
     }
-}
-
-/**
- * Creates a FileProvider-backed URI in the cache for the camera app to write a capture into.
- * Mirrors the authority declared in the manifest (`${applicationId}.fileprovider`).
- */
-private fun createCameraImageUri(context: Context): Uri {
-    val dir = File(context.cacheDir, "camera").apply { mkdirs() }
-    val file = File.createTempFile("capture_", ".jpg", dir)
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
 /**

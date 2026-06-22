@@ -1,0 +1,45 @@
+package com.example.carspotter.features.profile.dashboard
+
+import com.example.carspotter.data.model.FeedPost
+import com.example.carspotter.data.model.User
+import com.example.carspotter.data.remote.dto.post.FeedCursor
+import com.example.carspotter.features.feed.CommentsSheetState
+import java.util.UUID
+
+data class ProfileDashboardUiState(
+    val user: User? = null,
+    val posts: List<FeedPost> = emptyList(),
+    val nextCursor: FeedCursor? = null,
+    val hasMore: Boolean = true,
+    val isLoadingUser: Boolean = false,
+    val isLoadingInitial: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val errorMessage: String? = null,
+    /** Placeholder until the backend exposes a real streak field. */
+    val streakDays: Int = PLACEHOLDER_STREAK_DAYS,
+    /** Non-null while the see-post overlay is open. */
+    val selectedPostId: UUID? = null,
+    /** Non-null while the comments sheet is open (scoped to the selected post). */
+    val commentsSheet: CommentsSheetState? = null,
+    /** Posts with an in-flight like toggle — prevents double taps. */
+    val likeInFlight: Set<UUID> = emptySet(),
+    /** One-shot error message (e.g. like failure); cleared after shown. */
+    val userMessage: String? = null,
+) {
+    val isAnyLoading: Boolean
+        get() = isLoadingInitial || isLoadingMore || isRefreshing
+
+    val isEmpty: Boolean
+        get() = posts.isEmpty()
+
+    val postCount: Int
+        get() = user?.postCount ?: 0
+
+    val selectedPost: FeedPost?
+        get() = selectedPostId?.let { id -> posts.firstOrNull { it.id == id } }
+
+    companion object {
+        const val PLACEHOLDER_STREAK_DAYS = 0
+    }
+}

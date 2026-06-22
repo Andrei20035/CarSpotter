@@ -11,6 +11,8 @@ enum class LocationStatus { Idle, Resolving, Added, Unavailable }
  */
 data class ImageUploadUiState(
     val imageUri: Uri? = null,
+    /** "CAMERA" or "GALLERY" — derived from the nav arg, never changed after init. */
+    val postSource: String = "GALLERY",
 
     // Optional location, attached best-effort. All nullable; posting never depends on these.
     val latitude: Double? = null,

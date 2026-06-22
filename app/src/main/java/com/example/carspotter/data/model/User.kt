@@ -22,6 +22,7 @@ data class User(
     val username: String,
     val country: String,
     val spotScore: Int = 0,
+    val postCount: Int = 0,
     @Serializable(with = InstantSerializer::class)
     val createdAt: Instant? = null,
     @Serializable(with = InstantSerializer::class)

@@ -166,4 +166,10 @@ object NetworkModule {
         return retrofit.create(UploadImageApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideLeaderboardApi(retrofit: Retrofit): LeaderboardApi {
+        return retrofit.create(LeaderboardApi::class.java)
+    }
+
 }

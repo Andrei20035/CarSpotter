@@ -12,6 +12,7 @@ import com.example.carspotter.features.auth.AuthScreen
 import com.example.carspotter.features.onboarding.OnboardingScreen
 import com.example.carspotter.features.profile.dashboard.ProfileDashboardScreen
 import com.example.carspotter.features.profile.customization.ProfileCustomization
+import com.example.carspotter.features.leaderboard.LeaderboardScreen
 import com.example.carspotter.features.settings.SettingsScreen
 
 @Composable
@@ -66,10 +67,14 @@ fun CarSpotterNavigation(
                 navArgument(Screen.ImageUpload.ARG_IMAGE_URI) {
                     type = NavType.StringType
                     defaultValue = ""
-                }
+                },
+                navArgument(Screen.ImageUpload.ARG_SOURCE) {
+                    type = NavType.StringType
+                    defaultValue = "GALLERY"
+                },
             ),
         ) {
-            // The image URI nav arg is read by ImageUploadViewModel via SavedStateHandle.
+            // The image URI and source nav args are read by ImageUploadViewModel via SavedStateHandle.
             ImageUploadScreen(navController = navController)
         }
 
@@ -77,6 +82,10 @@ fun CarSpotterNavigation(
             SettingsScreen(
                 navController = navController
             )
+        }
+
+        composable(Screen.Leaderboard.route) {
+            LeaderboardScreen(navController = navController)
         }
 
         // Add other screens...

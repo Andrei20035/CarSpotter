@@ -81,9 +81,12 @@ fun ImageUploadScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // On a successful post, return to the feed.
+    // On a successful post, signal the launching screen and return.
     LaunchedEffect(uiState.postSuccess) {
-        if (uiState.postSuccess) navController.popBackStack()
+        if (uiState.postSuccess) {
+            navController.previousBackStackEntry?.savedStateHandle?.set("post_created", true)
+            navController.popBackStack()
+        }
     }
 
     // Optional location: request foreground permission once on entry, then resolve best-effort.

@@ -31,6 +31,7 @@ interface PostRepository {
     suspend fun editPost(postId: UUID, request: PostEditRequest): ApiResult<Unit>
     suspend fun deletePost(postId: UUID): ApiResult<Unit>
     suspend fun getFeedPosts(limit: Int, cursor: FeedCursor? = null): ApiResult<FeedResult>
+    suspend fun getUserPosts(userId: UUID, limit: Int, cursor: FeedCursor? = null): ApiResult<FeedResult>
 }
 @Singleton
 class PostRepositoryImpl @Inject constructor(
@@ -91,6 +92,22 @@ class PostRepositoryImpl @Inject constructor(
         return when (
             val result = safeApiCall {
                 postApi.getFeedPosts(
+                    limit = limit,
+                    cursorCreatedAt = cursor?.lastCreatedAt?.toString(),
+                    cursorPostId = cursor?.lastPostId?.toString()
+                )
+            }
+        ) {
+            is ApiResult.Success -> ApiResult.Success(result.data.toDomain())
+            is ApiResult.Error -> ApiResult.Error(result.message)
+        }
+    }
+
+    override suspend fun getUserPosts(userId: UUID, limit: Int, cursor: FeedCursor?): ApiResult<FeedResult> {
+        return when (
+            val result = safeApiCall {
+                postApi.getUserPosts(
+                    userId = userId,
                     limit = limit,
                     cursorCreatedAt = cursor?.lastCreatedAt?.toString(),
                     cursorPostId = cursor?.lastPostId?.toString()

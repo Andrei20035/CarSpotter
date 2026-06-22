@@ -57,4 +57,13 @@ interface PostApi {
         @Query("cursorCreatedAt") cursorCreatedAt: String? = null,
         @Query("cursorPostId") cursorPostId: String? = null
     ): Response<FeedResponse>
+
+    /** Cursor-based paginated posts for a specific user. Same cursor shape as the feed. */
+    @GET("users/{userId}/posts")
+    suspend fun getUserPosts(
+        @Path("userId") userId: UUID,
+        @Query("limit") limit: Int,
+        @Query("cursorCreatedAt") cursorCreatedAt: String? = null,
+        @Query("cursorPostId") cursorPostId: String? = null,
+    ): Response<FeedResponse>
 }

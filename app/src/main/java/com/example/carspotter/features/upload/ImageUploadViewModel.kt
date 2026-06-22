@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,7 +40,11 @@ class ImageUploadViewModel @Inject constructor(
             .get<String>(Screen.ImageUpload.ARG_IMAGE_URI)
             ?.takeIf { it.isNotBlank() }
             ?.let(Uri::parse)
-        _uiState.update { it.copy(imageUri = imageUri) }
+        val source = savedStateHandle
+            .get<String>(Screen.ImageUpload.ARG_SOURCE)
+            ?.takeIf { it == "CAMERA" || it == "GALLERY" }
+            ?: "GALLERY"
+        _uiState.update { it.copy(imageUri = imageUri, postSource = source) }
         loadBrands()
     }
 
@@ -200,6 +205,8 @@ class ImageUploadViewModel @Inject constructor(
                 longitude = state.longitude,
                 town = state.town,
                 country = state.country,
+                source = state.postSource,
+                createdAtTimezone = ZoneId.systemDefault().id,
             )
 
             when (val result = postRepository.createPost(metadata, compressed.bytes, compressed.mimeType)) {
