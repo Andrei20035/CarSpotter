@@ -1,13 +1,19 @@
 package com.example.carspotter.features.leaderboard
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +32,7 @@ import com.example.carspotter.features.leaderboard.components.CurrentUserLeaderb
 import com.example.carspotter.features.leaderboard.components.LeaderboardUserRow
 import com.example.carspotter.features.leaderboard.components.PodiumSection
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderboardScreen(
     navController: NavHostController,
@@ -69,43 +76,54 @@ fun LeaderboardScreen(
                 )
             }
             uiState.errorMessage != null -> {
-                Text(
-                    text = "Error: ${uiState.errorMessage}",
-                    color = Color.Red,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.align(Alignment.Center),
-                )
+                ) {
+                    Text(
+                        text = "Error: ${uiState.errorMessage}",
+                        color = Color.Red,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.retry() }) {
+                        Text(text = "Retry")
+                    }
+                }
             }
             else -> {
-                LazyColumn(
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.refresh() },
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 140.dp),
                 ) {
-                    // ── Current-user summary card ─────────────────────────
-                    uiState.currentUser?.let { standing ->
-                        item {
-                            CurrentUserLeaderboardCard(
-                                standing = standing,
-                                modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 140.dp),
+                    ) {
+                        uiState.currentUser?.let { standing ->
+                            item {
+                                CurrentUserLeaderboardCard(
+                                    standing = standing,
+                                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+
+                        if (uiState.podium.size >= 3) {
+                            item {
+                                PodiumSection(podium = uiState.podium)
+                            }
+                        }
+
+                        items(uiState.rest, key = { it.userId }) { entry ->
+                            LeaderboardUserRow(
+                                entry = entry,
+                                modifier = Modifier.padding(
+                                    horizontal = 13.dp,
+                                    vertical = 4.dp,
+                                ),
                             )
                         }
-                    }
-
-                    // ── Podium (ranks 1–3) ────────────────────────────────
-                    if (uiState.podium.size >= 3) {
-                        item {
-                            PodiumSection(podium = uiState.podium)
-                        }
-                    }
-
-                    // ── Rank 4+ rows ──────────────────────────────────────
-                    items(uiState.rest, key = { it.userId }) { entry ->
-                        LeaderboardUserRow(
-                            entry = entry,
-                            modifier = Modifier.padding(
-                                horizontal = 13.dp,
-                                vertical = 4.dp,
-                            ),
-                        )
                     }
                 }
             }

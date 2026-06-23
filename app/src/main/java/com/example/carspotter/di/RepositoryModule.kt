@@ -2,7 +2,6 @@ package com.example.carspotter.di
 
 import com.example.carspotter.data.repository.AuthRepository
 import com.example.carspotter.data.repository.AuthRepositoryImpl
-import com.example.carspotter.data.repository.FakeLeaderboardRepository
 import com.example.carspotter.data.repository.LeaderboardRepository
 import com.example.carspotter.data.repository.LeaderboardRepositoryImpl
 import com.example.carspotter.data.repository.CarModelRepository
@@ -37,11 +36,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
-    // TODO: swap FakeLeaderboardRepository → LeaderboardRepositoryImpl once backend Phase 5 is deployed
     @Binds
     @Singleton
     abstract fun bindLeaderboardRepository(
-        impl: FakeLeaderboardRepository
+        impl: LeaderboardRepositoryImpl
     ): LeaderboardRepository
 
     @Binds
