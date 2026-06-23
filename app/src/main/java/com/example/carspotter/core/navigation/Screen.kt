@@ -14,6 +14,12 @@ sealed class Screen(val route: String) {
     object Camera : Screen("camera")
     object Leaderboard : Screen("leaderboard")
 
+    object EditProfile : Screen("edit_profile")
+    object PersonalInfo : Screen("personal_info")
+    object ChangePassword : Screen("change_password")
+    object PrivacyPolicy : Screen("privacy_policy")
+    object TermsConditions : Screen("terms_conditions")
+
     /**
      * Upload-image screen reached after the user captures/picks a photo from the
      * "Post your find" overlay. Carries the selected image URI and post source as query arguments.

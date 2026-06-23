@@ -48,6 +48,15 @@ class ProfileDashboardViewModel @Inject constructor(
         }
     }
 
+    private fun refreshCurrentUser() {
+        viewModelScope.launch {
+            when (val result = userRepository.getCurrentUser()) {
+                is ApiResult.Success -> _uiState.update { it.copy(user = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
     private fun loadFirstPage(userId: UUID) = load(userId, reset = true, isRefresh = false)
 
     fun refresh() {
@@ -119,6 +128,44 @@ class ProfileDashboardViewModel @Inject constructor(
 
     fun clearSelectedPost() {
         _uiState.update { it.copy(selectedPostId = null, commentsSheet = null) }
+    }
+
+    fun requestDeletePost() {
+        if (_uiState.value.selectedPostId == null) return
+        _uiState.update { it.copy(showDeleteConfirm = true) }
+    }
+
+    fun dismissDeleteConfirm() {
+        _uiState.update { it.copy(showDeleteConfirm = false) }
+    }
+
+    fun confirmDeletePost() {
+        val postId = _uiState.value.selectedPostId ?: return
+        if (_uiState.value.deleteInFlight != null) return
+        _uiState.update { it.copy(deleteInFlight = postId) }
+        viewModelScope.launch {
+            when (val result = postRepository.deletePost(postId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { state ->
+                        state.copy(
+                            posts = state.posts.filterNot { it.id == postId },
+                            selectedPostId = null,
+                            commentsSheet = null,
+                            showDeleteConfirm = false,
+                            deleteInFlight = null,
+                        )
+                    }
+                    refreshCurrentUser()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(
+                        showDeleteConfirm = false,
+                        deleteInFlight = null,
+                        userMessage = "Couldn't delete this post. Please try again.",
+                    )
+                }
+            }
+        }
     }
 
     fun consumeUserMessage() {

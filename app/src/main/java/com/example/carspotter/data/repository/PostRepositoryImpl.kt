@@ -9,6 +9,7 @@ import com.example.carspotter.data.remote.dto.post.toDomain
 import com.example.carspotter.data.model.Post
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.core.network.safeApiCall
+import com.example.carspotter.core.network.safeApiCallNoContent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -81,11 +82,11 @@ class PostRepositoryImpl @Inject constructor(
     }
 
     override suspend fun editPost(postId: UUID, request: PostEditRequest): ApiResult<Unit> {
-        return safeApiCall { postApi.editPost(postId, request)}
+        return safeApiCallNoContent { postApi.editPost(postId, request) }
     }
 
     override suspend fun deletePost(postId: UUID): ApiResult<Unit> {
-        return safeApiCall { postApi.deletePost(postId)}
+        return safeApiCallNoContent { postApi.deletePost(postId) }
     }
 
     override suspend fun getFeedPosts(limit: Int, cursor: FeedCursor?): ApiResult<FeedResult> {

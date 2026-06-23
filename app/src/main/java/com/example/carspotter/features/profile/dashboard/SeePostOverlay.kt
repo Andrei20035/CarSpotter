@@ -3,6 +3,8 @@ package com.example.carspotter.features.profile.dashboard
 import android.os.Build
 import android.view.WindowManager
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -13,17 +15,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -31,23 +43,37 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
+import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.core.util.toPostDate
 import com.example.carspotter.data.model.FeedPost
 import java.util.Locale
+
+private val OverlayMenuSurface = Color(0xFF1B1F33)
+private val OverlayMenuBorder = Color(0x1FFFFFFF)
+private val OverlayMenuDanger = Color(0xFFFF5A5F)
+private val OverlayMenuDivider = Color(0x14FFFFFF)
 
 @Composable
 fun SeePostOverlay(
     post: FeedPost,
     isLikeInFlight: Boolean,
+    isDeleting: Boolean,
+    showDeleteConfirm: Boolean,
     onLikeToggle: () -> Unit,
     onOpenComments: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onConfirmDelete: () -> Unit,
+    onDismissDeleteConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     Dialog(
@@ -75,14 +101,20 @@ fun SeePostOverlay(
             }
         }
 
-        // Outer full-screen box: tapping outside the centered content dismisses.
+        // Outer full-screen box: tapping outside the centered content dismisses (or closes confirm panel).
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onDismiss,
+                    onClick = {
+                        if (showDeleteConfirm) {
+                            if (!isDeleting) onDismissDeleteConfirm()
+                        } else {
+                            onDismiss()
+                        }
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -99,13 +131,24 @@ fun SeePostOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Date above the image
-                Text(
-                    text = post.createdAt.toPostDate(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                )
+                // Date + options icon above the image
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = post.createdAt.toPostDate(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                    )
+
+                    PostDeleteMenu(
+                        isDeleting = isDeleting,
+                        onDeleteClick = onDeleteClick,
+                    )
+                }
 
                 // Post image
                 AsyncImage(
@@ -170,6 +213,182 @@ fun SeePostOverlay(
                         Text(
                             text = formatCount(post.commentCount),
                             color = Color.White,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+            }
+
+            if (showDeleteConfirm) {
+                DeletePostConfirmPanel(
+                    isDeleting = isDeleting,
+                    onConfirmDelete = onConfirmDelete,
+                    onDismissDeleteConfirm = onDismissDeleteConfirm,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 32.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeletePostConfirmPanel(
+    isDeleting: Boolean,
+    onConfirmDelete: () -> Unit,
+    onDismissDeleteConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(elevation = 24.dp, shape = RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(OverlayMenuSurface)
+            .border(1.dp, OverlayMenuBorder, RoundedCornerShape(18.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {},
+            )
+            .padding(20.dp),
+    ) {
+        Text(
+            text = "Delete Post",
+            color = Color.White,
+            fontFamily = Poppins,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = "Are you sure you want to delete this post? All points acquired from this post will be deducted from your current SpotScore.",
+            color = Color.White.copy(alpha = 0.75f),
+            fontFamily = Poppins,
+            fontWeight = FontWeight.Normal,
+            fontSize = 13.sp,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { if (!isDeleting) onDismissDeleteConfirm() },
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No",
+                    color = Color.White.copy(alpha = if (isDeleting) 0.4f else 1f),
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { if (!isDeleting) onConfirmDelete() },
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isDeleting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = OverlayMenuDanger,
+                    )
+                } else {
+                    Text(
+                        text = "Yes",
+                        color = OverlayMenuDanger,
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostDeleteMenu(
+    isDeleting: Boolean,
+    onDeleteClick: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val verticalOffsetPx = with(LocalDensity.current) { 24.dp.roundToPx() }
+
+    Box {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { if (!isDeleting) expanded = true },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.post_options),
+                contentDescription = "Post options",
+                modifier = Modifier.size(28.dp),
+            )
+        }
+
+        if (expanded) {
+            Popup(
+                alignment = Alignment.TopEnd,
+                offset = IntOffset(0, verticalOffsetPx),
+                onDismissRequest = { expanded = false },
+                properties = PopupProperties(focusable = true),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(OverlayMenuSurface)
+                        .border(1.dp, OverlayMenuBorder, RoundedCornerShape(16.dp))
+                        .padding(vertical = 6.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                expanded = false
+                                onDeleteClick()
+                            }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = OverlayMenuDanger,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Text(
+                            text = "Delete Post",
+                            color = OverlayMenuDanger,
+                            fontFamily = Poppins,
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp,
                         )

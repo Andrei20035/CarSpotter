@@ -24,14 +24,20 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.carspotter.core.ui.components.CustomSnackbar
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,12 +55,16 @@ import com.example.carspotter.R
 import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
+import com.example.carspotter.core.ui.components.shimmer
 import com.example.carspotter.features.feed.components.CommentsSheet
 import com.example.carspotter.features.feed.components.rememberPostCreationLauncher
 
 private val DarkBackground = Color(0xFF05081D)
 private val CardSurface = Color(0xFF131929)
 private val TextMuted = Color(0xFF8A8FA8)
+private val ProfileAccent = Color(0xFF34D7C4)
+
+private enum class TileState { Loading, Success, Error }
 
 @Composable
 fun ProfileDashboardScreen(
@@ -104,7 +114,10 @@ fun ProfileDashboardScreen(
         ) {
             // ── Header: profile row ──────────────────────────────────────
             item(span = { GridItemSpan(maxLineSpan) }) {
-                ProfileHeaderSection(uiState = uiState)
+                ProfileHeaderSection(
+                    uiState = uiState,
+                    onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                )
             }
 
             // ── Header: stats card ───────────────────────────────────────
@@ -114,14 +127,31 @@ fun ProfileDashboardScreen(
 
             // ── Loading / empty / error states ───────────────────────────
             when {
-                uiState.isLoadingInitial -> item(span = { GridItemSpan(maxLineSpan) }) {
+                uiState.isLoadingInitial -> items(3) {
+                    ProfileGridSkeletonTile()
+                }
+
+                uiState.errorMessage != null && uiState.isEmpty -> item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .padding(vertical = 48.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(color = Color.White)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Couldn't load your posts",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 13.sp,
+                            )
+                            TextButton(onClick = { viewModel.retry() }) {
+                                Text(
+                                    "Retry",
+                                    color = ProfileAccent,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -138,20 +168,10 @@ fun ProfileDashboardScreen(
 
                 else -> {
                     items(uiState.posts, key = { it.id }) { post ->
-                        AsyncImage(
-                            model = post.imageUrl,
+                        ProfilePostTile(
+                            imageUrl = post.imageUrl,
                             contentDescription = "${post.brand} ${post.model}",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = { viewModel.onPostClick(post.id) },
-                                ),
-                            placeholder = painterResource(R.drawable.profile_picture),
-                            error = painterResource(R.drawable.profile_picture),
+                            onClick = { viewModel.onPostClick(post.id) },
                         )
                     }
 
@@ -164,7 +184,7 @@ fun ProfileDashboardScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (uiState.isLoadingMore) {
-                                    CircularProgressIndicator(
+                                    androidx.compose.material3.CircularProgressIndicator(
                                         color = Color.White,
                                         modifier = Modifier.size(24.dp),
                                         strokeWidth = 2.dp,
@@ -215,10 +235,31 @@ fun ProfileDashboardScreen(
             SeePostOverlay(
                 post = post,
                 isLikeInFlight = post.id in uiState.likeInFlight,
+                isDeleting = uiState.deleteInFlight == post.id,
+                showDeleteConfirm = uiState.showDeleteConfirm,
                 onLikeToggle = { viewModel.onLikeToggle(post.id) },
                 onOpenComments = { viewModel.openComments(post.id) },
+                onDeleteClick = { viewModel.requestDeletePost() },
+                onConfirmDelete = { viewModel.confirmDeletePost() },
+                onDismissDeleteConfirm = { viewModel.dismissDeleteConfirm() },
                 onDismiss = { viewModel.clearSelectedPost() },
             )
+        }
+
+        // One-shot feedback — auto-dismisses after a short delay.
+        uiState.userMessage?.let { message ->
+            LaunchedEffect(message) {
+                delay(3000)
+                viewModel.consumeUserMessage()
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 96.dp),
+            ) {
+                CustomSnackbar(message = message)
+            }
         }
 
         // Comments sheet — opened from the see-post overlay.
@@ -235,7 +276,48 @@ fun ProfileDashboardScreen(
 }
 
 @Composable
-private fun ProfileHeaderSection(uiState: ProfileDashboardUiState) {
+private fun ProfileGridSkeletonTile() {
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .shimmer(RoundedCornerShape(4.dp)),
+    )
+}
+
+@Composable
+private fun ProfilePostTile(
+    imageUrl: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    var tileState by remember(imageUrl) { mutableStateOf(TileState.Loading) }
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(4.dp))
+            .background(CardSurface)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            onSuccess = { tileState = TileState.Success },
+            onError = { tileState = TileState.Error },
+        )
+        if (tileState == TileState.Loading) {
+            Box(Modifier.matchParentSize().shimmer(RoundedCornerShape(4.dp)))
+        }
+    }
+}
+
+@Composable
+private fun ProfileHeaderSection(uiState: ProfileDashboardUiState, onSettingsClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -298,6 +380,25 @@ private fun ProfileHeaderSection(uiState: ProfileDashboardUiState) {
 
             Spacer(modifier = Modifier.height(8.dp))
             EarlySpotterBadge()
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(CardSurface),
+            contentAlignment = Alignment.Center,
+        ) {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    painter = painterResource(R.drawable.settings),
+                    contentDescription = "Settings",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }

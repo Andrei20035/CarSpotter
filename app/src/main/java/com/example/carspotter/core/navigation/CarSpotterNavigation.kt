@@ -13,6 +13,7 @@ import com.example.carspotter.features.onboarding.OnboardingScreen
 import com.example.carspotter.features.profile.dashboard.ProfileDashboardScreen
 import com.example.carspotter.features.profile.customization.ProfileCustomization
 import com.example.carspotter.features.leaderboard.LeaderboardScreen
+import com.example.carspotter.features.settings.PlaceholderScreen
 import com.example.carspotter.features.settings.SettingsScreen
 
 @Composable
@@ -86,6 +87,26 @@ fun CarSpotterNavigation(
 
         composable(Screen.Leaderboard.route) {
             LeaderboardScreen(navController = navController)
+        }
+
+        composable(Screen.EditProfile.route) {
+            PlaceholderScreen(title = "Edit Profile", navController = navController)
+        }
+
+        composable(Screen.PersonalInfo.route) {
+            PlaceholderScreen(title = "Personal info", navController = navController)
+        }
+
+        composable(Screen.ChangePassword.route) {
+            PlaceholderScreen(title = "Change password", navController = navController)
+        }
+
+        composable(Screen.PrivacyPolicy.route) {
+            PlaceholderScreen(title = "Privacy Policy", navController = navController)
+        }
+
+        composable(Screen.TermsConditions.route) {
+            PlaceholderScreen(title = "Terms & Conditions", navController = navController)
         }
 
         // Add other screens...

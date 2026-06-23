@@ -2,7 +2,9 @@ package com.example.carspotter.features.settings
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,217 +14,296 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.outlined.Password
-import androidx.compose.material.icons.outlined.PersonOutline
-import androidx.compose.material.icons.outlined.Policy
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.carspotter.R
+import com.example.carspotter.core.navigation.Screen
+import com.example.carspotter.core.ui.theme.Poppins
+
+private val BgTop = Color.Black
+private val BgBottom = Color(0xFF080C30)
+private val CardBg = Color(0x3DD9D9D9)          // rgba(217,217,217,0.24)
+private val SectionLabelColor = Color(0xFF8D8D8D)
+private val ItemTextColor = Color.White
+private val LogoutRed = Color.Red
 
 @Composable
-fun SettingsScreen(navController: NavController) {
-    Scaffold(
-        topBar = {
+fun SettingsScreen(
+    navController: NavController,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(BgTop, BgBottom))),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+                .padding(horizontal = 17.dp),
+        ) {
+            // ── Top bar ──────────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Settings",
+                    color = Color.White,
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 24.sp,
+                )
+            }
+
+            // ── Profile card ─────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(20.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(92.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Black,
-                                Color.Black.copy(alpha = 0.78f),
-                                Color.Black.copy(alpha = 0.25f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-                    .padding(top = 16.dp)
+                    .height(122.dp)
+                    .clip(RoundedCornerShape(21.dp))
+                    .background(CardBg)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Avatar
+                    val avatarUrl = uiState.user?.profilePicturePath
+                    if (avatarUrl.isNullOrBlank()) {
+                        Image(
+                            painter = painterResource(R.drawable.profile_picture),
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape),
+                            placeholder = painterResource(R.drawable.profile_picture),
+                            fallback = painterResource(R.drawable.profile_picture),
+                            error = painterResource(R.drawable.profile_picture),
                         )
                     }
-                    Text(
-                        text = "Settings",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp,
-                        letterSpacing = 1.sp
-                    )
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column {
+                        Text(
+                            text = uiState.user?.username ?: "",
+                            color = Color.White,
+                            fontFamily = FontFamily.Default,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 22.sp,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(21.dp))
+                                .background(Color(0x80D9D9D9))
+                                .border(1.dp, Color(0xE3FFFFFF), RoundedCornerShape(21.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { navController.navigate(Screen.EditProfile.route) },
+                                )
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                text = "Edit Profile",
+                                color = Color.White,
+                                fontFamily = FontFamily.Default,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 15.sp,
+                            )
+                        }
+                    }
                 }
             }
-        },
-        containerColor = Color(0xFF05081D)
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Brush.verticalGradient(listOf(Color.Black, Color(0xFF05081D))))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-            ) {
-                Spacer(modifier = Modifier.height(24.dp))
-                EditProfileCard()
 
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionLabel("Account")
-                SettingsGroup(
-                    items = listOf(
-                        SettingsItem("Personal info", Icons.Outlined.PersonOutline),
-                        SettingsItem("Notifications settings", Icons.Filled.Notifications)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionLabel("Security")
-                SettingsGroup(
-                    items = listOf(
-                        SettingsItem("Change password", Icons.Outlined.Password),
-                        SettingsItem("Two-factor login", Icons.Filled.Lock),
-                        SettingsItem("Touch ID", Icons.Filled.Fingerprint)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionLabel("Others")
-                SettingsGroup(
-                    items = listOf(
-                        SettingsItem("Privacy Policy", Icons.Outlined.Policy),
-                        SettingsItem("Terms & Conditions", Icons.Filled.Description)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ExitToApp,
-                        contentDescription = null,
-                        tint = Color.Red,
-                        modifier = Modifier.size(30.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Log out", color = Color.Red, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditProfileCard() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .background(Color(0xFF38394A), RoundedCornerShape(20.dp))
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(R.drawable.profile_picture),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(Color.Gray, RoundedCornerShape(40.dp))
+            // ── Account section ──────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionLabel("Account")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsRow(
+                iconRes = R.drawable.user_icon,
+                label = "Personal info",
+                topRound = true,
+                bottomRound = true,
+                onClick = { navController.navigate(Screen.PersonalInfo.route) },
             )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column {
-                Text("Alex", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 25.sp)
-                Spacer(modifier = Modifier.height(10.dp))
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF87888D), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text("Edit profile", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                }
+
+            // ── Security section ─────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionLabel("Security")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsRow(
+                iconRes = R.drawable.change_password,
+                label = "Change password",
+                topRound = true,
+                bottomRound = true,
+                onClick = { navController.navigate(Screen.ChangePassword.route) },
+            )
+
+            // ── Others section ───────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionLabel("Others")
+            Spacer(modifier = Modifier.height(8.dp))
+            SettingsRow(
+                iconRes = R.drawable.privacy_policy,
+                label = "Privacy Policy",
+                topRound = true,
+                bottomRound = false,
+                onClick = { navController.navigate(Screen.PrivacyPolicy.route) },
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.08f))
+            )
+            SettingsRow(
+                iconRes = R.drawable.terms_conditions,
+                label = "Terms & Conditions",
+                topRound = false,
+                bottomRound = true,
+                onClick = { navController.navigate(Screen.TermsConditions.route) },
+            )
+
+            // ── Log out ──────────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(28.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { /* TODO: implement logout flow */ },
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.logout),
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Log out",
+                    color = LogoutRed,
+                    fontFamily = FontFamily.Default,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp,
+                )
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
-
-private data class SettingsItem(val label: String, val icon: ImageVector)
 
 @Composable
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        color = Color(0xFF8D8D8D),
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 1.sp,
-        style = MaterialTheme.typography.bodyMedium
+        color = SectionLabelColor,
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
     )
 }
 
 @Composable
-private fun SettingsGroup(items: List<SettingsItem>) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+private fun SettingsRow(
+    iconRes: Int,
+    label: String,
+    topRound: Boolean,
+    bottomRound: Boolean,
+    onClick: () -> Unit,
+) {
+    val topRadius = if (topRound) 20.dp else 0.dp
+    val bottomRadius = if (bottomRound) 20.dp else 0.dp
+    val shape = RoundedCornerShape(
+        topStart = topRadius,
+        topEnd = topRadius,
+        bottomStart = bottomRadius,
+        bottomEnd = bottomRadius,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .clip(shape)
+            .background(CardBg)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        items.forEachIndexed { index, item ->
-            val shape = when (index) {
-                0 -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                items.lastIndex -> RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
-                else -> RoundedCornerShape(0.dp)
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .background(Color(0xFF38394A), shape)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(item.icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.width(14.dp))
-                Text(item.label, color = Color.White, fontWeight = FontWeight.SemiBold)
-            }
-        }
+        Image(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(30.dp),
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = label,
+            color = ItemTextColor,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Medium,
+            fontSize = 16.sp,
+        )
     }
 }

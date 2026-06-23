@@ -26,6 +26,10 @@ data class ProfileDashboardUiState(
     val likeInFlight: Set<UUID> = emptySet(),
     /** One-shot error message (e.g. like failure); cleared after shown. */
     val userMessage: String? = null,
+    /** True while the delete-confirmation dialog is open for the selected post. */
+    val showDeleteConfirm: Boolean = false,
+    /** Post id whose delete request is in flight — guards against double-tap. */
+    val deleteInFlight: UUID? = null,
 ) {
     val isAnyLoading: Boolean
         get() = isLoadingInitial || isLoadingMore || isRefreshing
