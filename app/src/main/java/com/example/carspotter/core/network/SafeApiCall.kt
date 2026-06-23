@@ -14,7 +14,8 @@ suspend fun safeApiCallNoContent(apiCall: suspend () -> Response<Unit>): ApiResu
             ApiResult.Success(Unit)
         } else {
             val errorBody = response.errorBody()?.string()
-            ApiResult.Error(extractErrorMessage(errorBody))
+            val error = extractApiError(errorBody)
+            ApiResult.Error(error.first, error.second)
         }
     } catch (e: IOException) {
         ApiResult.Error("Network error: ${e.message}")
@@ -34,7 +35,8 @@ suspend fun <T> safeApiCall(apiCall: suspend () -> Response<T>): ApiResult<T> {
         } else {
 
             val errorBody = response.errorBody()?.string()
-            ApiResult.Error(extractErrorMessage(errorBody))
+            val error = extractApiError(errorBody)
+            ApiResult.Error(error.first, error.second)
         }
 
     } catch (e: IOException) {
@@ -44,8 +46,8 @@ suspend fun <T> safeApiCall(apiCall: suspend () -> Response<T>): ApiResult<T> {
     }
 }
 
-private fun extractErrorMessage(errorBody: String?): String {
-    if (errorBody.isNullOrBlank()) return "Unknown error"
+private fun extractApiError(errorBody: String?): Pair<String, String?> {
+    if (errorBody.isNullOrBlank()) return "Unknown error" to null
     val trimmedBody = errorBody.trimStart()
     val looksLikeJsonObject = trimmedBody.startsWith("{")
     val fallbackMessage = if (errorBody.length > 200 || trimmedBody.startsWith("<")) {
@@ -54,14 +56,17 @@ private fun extractErrorMessage(errorBody: String?): String {
         errorBody
     }
 
-    if (!looksLikeJsonObject) return fallbackMessage
+    if (!looksLikeJsonObject) return fallbackMessage to null
 
     return try {
         val json = Json.parseToJsonElement(errorBody) as? JsonObject
-        json?.get("error")?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+        val nestedError = json?.get("error") as? JsonObject
+        val message = nestedError?.get("message")?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+            ?: json?.get("error")?.jsonPrimitive?.contentOrNull?.ifBlank { null }
             ?: json?.get("message")?.jsonPrimitive?.contentOrNull?.ifBlank { null }
             ?: "Unknown error"
+        message to nestedError?.get("code")?.jsonPrimitive?.contentOrNull
     } catch (_: Exception) {
-        fallbackMessage
+        fallbackMessage to null
     }
 }

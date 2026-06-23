@@ -31,8 +31,8 @@ class UserPreferences @Inject constructor(
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data
         .map { it[ONBOARDING_KEY] ?: false }
 
-    val authToken: Flow<String?> = context.dataStore.data
-        .map { it[JWT_TOKEN_KEY] }
+    @Deprecated("Use TokenStore")
+    val authToken: Flow<String?> = context.dataStore.data.map { it[JWT_TOKEN_KEY] }
 
     val userId: Flow<UUID?> = context.dataStore.data
         .map { preferences ->
@@ -49,10 +49,14 @@ class UserPreferences @Inject constructor(
         context.dataStore.edit { it[ONBOARDING_KEY] = completed }
     }
 
+    suspend fun removeLegacyJwt() {
+        context.dataStore.edit { it.remove(JWT_TOKEN_KEY) }
+    }
+
+    @Deprecated("Use TokenStore")
     suspend fun saveJwtToken(token: String) {
         context.dataStore.edit { it[JWT_TOKEN_KEY] = token }
     }
-
     suspend fun saveUserId(uuid: UUID) {
         context.dataStore.edit { it[USER_ID_KEY] = uuid.toString() }
     }

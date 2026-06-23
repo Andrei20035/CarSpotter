@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.core.image.ImageCompressor
 import com.example.carspotter.data.local.preferences.UserPreferences
+import com.example.carspotter.data.local.auth.AuthTokens
+import com.example.carspotter.data.local.auth.TokenStore
 import com.example.carspotter.data.remote.dto.user.CreateUserRequest
 import com.example.carspotter.data.remote.dto.user_car.UserCarRequest
 import com.example.carspotter.core.network.ApiResult
@@ -29,6 +31,7 @@ class ProfileCustomizationViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
     private val carModelRepository: CarModelRepository,
     private val imageCompressor: ImageCompressor,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileCustomizationUiState())
@@ -240,7 +243,7 @@ class ProfileCustomizationViewModel @Inject constructor(
         Log.d("BIRTHDATE" ,_uiState.value.birthDate.toString())
         return when (val result = userRepository.createUser(createUserRequest)) {
             is ApiResult.Success -> {
-                userPreferences.saveJwtToken(result.data.jwtToken)
+                tokenStore.save(AuthTokens(result.data.accessToken, result.data.refreshToken))
                 userPreferences.saveUserId(result.data.userId)
                 result.data.userId
             }

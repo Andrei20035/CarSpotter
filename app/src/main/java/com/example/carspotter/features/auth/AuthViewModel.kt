@@ -3,6 +3,8 @@ package com.example.carspotter.features.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.carspotter.data.local.preferences.UserPreferences
+import com.example.carspotter.data.local.auth.AuthTokens
+import com.example.carspotter.data.local.auth.TokenStore
 import com.example.carspotter.data.model.AuthProvider
 import com.example.carspotter.core.network.ApiResult
 import com.example.carspotter.data.remote.dto.auth.OnboardingStep
@@ -26,7 +28,8 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val tokenStore: TokenStore? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -95,8 +98,11 @@ class AuthViewModel @Inject constructor(
 
         if (email.isBlank()) { setError("Email cannot be empty"); return }
         if (!isValidEmail(email)) { setError("Invalid email format"); return }
-        if (password.length < 8) { setError("Password must be at least 8 characters"); return }
         if (password != confirm) { setError("Passwords do not match"); return }
+        if (!isValidPassword(password)) {
+            setError("Password must be at least 8 characters and include uppercase, lowercase, number and symbol")
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -132,8 +138,9 @@ class AuthViewModel @Inject constructor(
     private suspend fun handleAuthResult(result: ApiResult<com.example.carspotter.data.remote.dto.auth.AuthResponse>) {
         when (result) {
             is ApiResult.Success -> {
-                userPreferences.saveJwtToken(result.data.token)
-                val jwtUserId = result.data.token.extractUserIdFromJwt()
+                tokenStore?.save(AuthTokens(result.data.accessToken, result.data.refreshToken))
+                    ?: userPreferences.saveJwtToken(result.data.accessToken)
+                val jwtUserId = result.data.accessToken.extractUserIdFromJwt()
                 val navTarget = when (result.data.onboardingStep) {
                     OnboardingStep.PROFILE_REQUIRED -> {
                         AuthNavigationEvent.ToProfileCustomization
@@ -173,6 +180,13 @@ class AuthViewModel @Inject constructor(
         val r = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
         return r.matches(email)
     }
+
+    private fun isValidPassword(password: String): Boolean =
+        password.length >= 8 &&
+            password.any(Char::isUpperCase) &&
+            password.any(Char::isLowerCase) &&
+            password.any(Char::isDigit) &&
+            password.any { !it.isLetterOrDigit() }
 
     private fun setError(message: String) {
         _uiState.update {

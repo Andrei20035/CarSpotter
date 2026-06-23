@@ -44,7 +44,7 @@ class AuthRepositoryImplTest {
     fun `login REGULAR trimite email si password si NU trimite googleIdToken`() = runTest {
         val captured = slot<AuthRequest>()
         coEvery { authApi.login(capture(captured)) } returns Response.success(
-            AuthResponse(token = "jwt", onboardingStep = OnboardingStep.COMPLETED)
+            AuthResponse(accessToken = "jwt", onboardingStep = OnboardingStep.COMPLETED)
         )
 
         val result = repo.login(
@@ -67,7 +67,7 @@ class AuthRepositoryImplTest {
     fun `login GOOGLE trimite doar googleIdToken si provider GOOGLE`() = runTest {
         val captured = slot<AuthRequest>()
         coEvery { authApi.login(capture(captured)) } returns Response.success(
-            AuthResponse(token = "jwt-g", onboardingStep = OnboardingStep.PROFILE_REQUIRED)
+            AuthResponse(accessToken = "jwt-g", onboardingStep = OnboardingStep.PROFILE_REQUIRED)
         )
 
         repo.login(

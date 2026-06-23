@@ -6,7 +6,8 @@ import java.util.UUID
 
 @Serializable
 data class CreateUserResponse(
-    val jwtToken: String,
+    val accessToken: String,
+    val refreshToken: String,
     @Serializable(with = UUIDSerializer::class)
     val userId: UUID,
 )

@@ -1,7 +1,9 @@
 package com.example.carspotter.data.remote.api
 
 import com.example.carspotter.data.remote.dto.auth.AuthResponse
-import com.example.carspotter.data.remote.dto.auth.AuthRequest
+import com.example.carspotter.data.remote.dto.auth.LoginRequest
+import com.example.carspotter.data.remote.dto.auth.RefreshRequest
+import com.example.carspotter.data.remote.dto.auth.RegisterRequest
 import com.example.carspotter.data.remote.dto.auth.UpdatePasswordRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -13,14 +15,20 @@ import retrofit2.http.PUT
 interface AuthApi {
 
     @POST("auth/login")
-    suspend fun login(@Body loginRequest: AuthRequest): Response<AuthResponse>
+    suspend fun login(@Body loginRequest: LoginRequest): Response<AuthResponse>
 
     @POST("auth/register")
-    suspend fun register(@Body registerRequest: AuthRequest): Response<AuthResponse>
+    suspend fun register(@Body registerRequest: RegisterRequest): Response<AuthResponse>
+
+    @POST("auth/refresh")
+    suspend fun refresh(@Body refreshRequest: RefreshRequest): Response<AuthResponse>
+
+    @POST("auth/logout")
+    suspend fun logout(): Response<Unit>
 
     @DELETE("auth/account")
     suspend fun deleteAccount(): Response<Unit>
 
     @PUT("auth/password")
-    suspend fun updatePassword(@Body updatePasswordRequest: UpdatePasswordRequest): Response<Unit>
+    suspend fun updatePassword(@Body updatePasswordRequest: UpdatePasswordRequest): Response<AuthResponse>
 }

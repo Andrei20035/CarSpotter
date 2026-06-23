@@ -1,8 +1,8 @@
 package com.example.carspotter.di
 
-import android.util.Log
 import com.example.carspotter.BuildConfig
-import com.example.carspotter.data.local.preferences.UserPreferences
+import com.example.carspotter.data.local.auth.TokenStore
+import com.example.carspotter.core.network.TokenAuthenticator
 import com.example.carspotter.data.remote.api.*
 import com.example.carspotter.core.network.NetworkConnectivityInterceptor
 import com.google.gson.Gson
@@ -11,8 +11,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,6 +20,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import javax.inject.Named
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -41,9 +40,9 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(userPreferences: UserPreferences): Interceptor {
+    fun provideAuthInterceptor(tokenStore: TokenStore): Interceptor {
         return Interceptor { chain ->
-            val token = runBlocking { userPreferences.authToken.firstOrNull() }
+            val token = tokenStore.read()?.accessToken
             val newRequest = chain.request().newBuilder().apply {
                 if (!token.isNullOrBlank()) {
                     addHeader("Authorization", "Bearer $token")
@@ -70,6 +69,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: Interceptor,
+        tokenAuthenticator: TokenAuthenticator,
         loggingInterceptor: HttpLoggingInterceptor,
         networkConnectivityInterceptor: NetworkConnectivityInterceptor
     ): OkHttpClient {
@@ -77,6 +77,7 @@ object NetworkModule {
             .addInterceptor(networkConnectivityInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
+            .authenticator(tokenAuthenticator)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -85,18 +86,44 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        val contentType = "application/json".toMediaType()
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+    }
 
-        val json = Json {
-            ignoreUnknownKeys = true
-        }
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+        val contentType = "application/json".toMediaType()
 
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("refresh")
+    fun provideRefreshAuthApi(
+        loggingInterceptor: HttpLoggingInterceptor,
+        networkConnectivityInterceptor: NetworkConnectivityInterceptor,
+        json: Json,
+    ): AuthApi {
+        val rawClient = OkHttpClient.Builder()
+            .addInterceptor(networkConnectivityInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(rawClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(AuthApi::class.java)
     }
 
 

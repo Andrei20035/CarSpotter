@@ -214,8 +214,8 @@ class AuthViewModelTest {
 
         vm.toggleLoginMode()                         // intrăm în mod register
         vm.updateEmail("new@user.com")
-        vm.updatePassword("password123")
-        vm.updateConfirmPassword("password123")
+        vm.updatePassword("Password!123")
+        vm.updateConfirmPassword("Password!123")
         vm.submitEmailAuth()
 
         assertEquals(

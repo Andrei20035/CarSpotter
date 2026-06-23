@@ -7,8 +7,11 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class AuthResponse(
-    val token: String,
-    val onboardingStep: OnboardingStep
+    val accessToken: String,
+    val onboardingStep: OnboardingStep,
+    val refreshToken: String = "legacy-test-refresh",
+    val expiresIn: Int = 900,
+    val scope: String = "FULL",
 )
 
 @Serializable

@@ -10,6 +10,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import com.example.carspotter.core.auth.SessionManager
+import com.example.carspotter.core.navigation.Screen
+import javax.inject.Inject
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,10 +28,23 @@ import dagger.hilt.android.HiltAndroidApp
 class CarSpotterApp : Application()
 
 @Composable
-fun CarSpotterAppUI(modifier: Modifier = Modifier) {
+fun CarSpotterAppUI(
+    modifier: Modifier = Modifier,
+    sessionManager: SessionManager = androidx.hilt.navigation.compose.hiltViewModel<SessionHostViewModel>().sessionManager,
+) {
     val navController = rememberNavController()
+    val context = LocalContext.current
     val startVm: StartDestinationViewModel = hiltViewModel()
     val start by startVm.startDestination.collectAsState()
+    LaunchedEffect(sessionManager, navController) {
+        sessionManager.expired.collect { message ->
+            navController.navigate(Screen.Auth.route) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
 
     // The Surface stays full-bleed so the theme background fills the whole window — including
     // behind the system bars — which keeps the system-chosen status/nav icon colors legible.
@@ -46,3 +65,8 @@ fun CarSpotterAppUI(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@dagger.hilt.android.lifecycle.HiltViewModel
+class SessionHostViewModel @Inject constructor(
+    val sessionManager: SessionManager,
+) : androidx.lifecycle.ViewModel()
