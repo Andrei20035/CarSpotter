@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,11 +33,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -173,7 +186,16 @@ fun ImageUploadScreen(
                         contentDescription = "Selected photo",
                         shape = CardShape,
                         modifier = Modifier.fillMaxSize(),
+                        onTransformChanged = viewModel::onTransformChanged,
                     )
+
+                    // One-shot pinch hint: shown once per new image, auto-dismissed after 1.5s.
+                    var showHint by remember(uri) { mutableStateOf(true) }
+                    LaunchedEffect(uri) {
+                        delay(1500)
+                        showHint = false
+                    }
+                    PinchHintOverlay(visible = showHint)
                 }
             }
 
@@ -265,6 +287,80 @@ fun ImageUploadScreen(
                     .padding(bottom = 16.dp),
             ) {
                 CustomSnackbar(message = message)
+            }
+        }
+    }
+}
+
+/**
+ * Non-interactive overlay that pulses two finger-circles toward each other to hint pinch-to-zoom.
+ * Rendered above the preview image but captures no gestures, so the real pinch works underneath.
+ * Fades in immediately and fades out when [visible] turns false.
+ */
+@Composable
+private fun PinchHintOverlay(visible: Boolean) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(300)),
+        exit  = fadeOut(animationSpec = tween(400)),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Semi-transparent scrim so the circles read against any image.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.28f)),
+            )
+
+            val infiniteTransition = rememberInfiniteTransition(label = "pinch_hint")
+            // Oscillates 0→1→0: at 0 the fingers are apart, at 1 they are close together.
+            val progress by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(700, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "pinch_progress",
+            )
+
+            // Finger circles spread from ±40dp at progress=0 to ±10dp at progress=1.
+            val spreadDp = androidx.compose.ui.unit.lerp(40.dp, 10.dp, progress)
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Left finger circle.
+                    Box(
+                        modifier = Modifier
+                            .offset(x = -spreadDp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.85f)),
+                    )
+                    // Right finger circle.
+                    Box(
+                        modifier = Modifier
+                            .offset(x = spreadDp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.85f)),
+                    )
+                }
+                Text(
+                    text = "Pinch to zoom",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }

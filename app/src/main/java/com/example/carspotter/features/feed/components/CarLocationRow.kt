@@ -43,17 +43,31 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.example.carspotter.R
 import com.example.carspotter.core.ui.theme.Poppins
+import com.example.carspotter.core.ui.scaling.scaled
 
 // Same dark/glass palette as the post-options dropdown, so the details popover matches it.
 private val PopoverSurface = Color(0xFF1B1F33)
 private val PopoverBorder = Color(0x1FFFFFFF) // white @ ~12%
 
-// Icon sizes mirror the inline row exactly (ic_car 14dp, ic_gps 15dp) — visual style unchanged.
-private val CarIconSize = 14.dp
-private val GpsIconSize = 15.dp
-private val RowTextSize = 13.3.sp
+// Reference dimensions (Pixel 9 Pro baseline, scale == 1.0).
+private val RefCarIconSize = 14.dp
+private val RefGpsIconSize = 15.dp
+private val RefRowTextSize = 13.3.sp
 // Width of the right-edge alpha fade applied only when the row overflows.
-private val FadeWidth = 24.dp
+private val RefFadeWidth = 24.dp
+private val RefCarIconTextSpacing = 5.dp
+private val RefGpsLeadingSpacing = 6.dp
+private val RefGpsIconTextSpacing = 5.dp
+private val RefPopoverOffsetY = 22.dp
+private val RefPopoverMaxWidth = 280.dp
+private val RefPopoverCornerRadius = 16.dp
+private val RefPopoverPaddingH = 14.dp
+private val RefPopoverPaddingV = 12.dp
+private val RefPopoverItemSpacing = 10.dp
+private val RefPopoverCarIconSize = 16.dp
+private val RefPopoverGpsIconSize = 17.dp
+private val RefPopoverIconTextSpacing = 10.dp
+private val RefPopoverFontSize = 13.3.sp
 
 /**
  * The post header's second row — `ic_car · car name · ic_gps · location` — kept on a single line.
@@ -79,7 +93,7 @@ fun CarLocationRow(
     var carOverflow by remember(carName) { mutableStateOf(false) }
     var locationOverflow by remember(location) { mutableStateOf(false) }
     val showFade = carOverflow || locationOverflow
-    val popoverOffsetY = with(LocalDensity.current) { 22.dp.roundToPx() }
+    val popoverOffsetY = with(LocalDensity.current) { RefPopoverOffsetY.scaled().roundToPx() }
 
     Box(modifier = modifier) {
         Row(
@@ -90,21 +104,21 @@ fun CarLocationRow(
                     indication = null,
                     onClick = { expanded = true },
                 )
-                .rightEdgeFade(visible = showFade, fadeWidth = FadeWidth),
+                .rightEdgeFade(visible = showFade, fadeWidth = RefFadeWidth.scaled()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_car),
                 contentDescription = null,
-                modifier = Modifier.size(CarIconSize),
+                modifier = Modifier.size(RefCarIconSize.scaled()),
             )
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(modifier = Modifier.width(RefCarIconTextSpacing.scaled()))
             // No weight → measured greedily, so the car name keeps priority over the location.
             Text(
                 // Design: "Porsche 911," — trailing comma when a location follows.
                 text = if (location != null) "$carName," else carName,
                 color = Color.White,
-                fontSize = RowTextSize,
+                fontSize = RefRowTextSize.scaled(),
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Clip,
@@ -113,17 +127,17 @@ fun CarLocationRow(
             // Location resolved from the post's coordinates (town, country). Hidden when the backend
             // hasn't geocoded the post yet — never fabricated.
             if (location != null) {
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(RefGpsLeadingSpacing.scaled()))
                 Image(
                     painter = painterResource(R.drawable.ic_gps),
                     contentDescription = null,
-                    modifier = Modifier.size(GpsIconSize),
+                    modifier = Modifier.size(RefGpsIconSize.scaled()),
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(RefGpsIconTextSpacing.scaled()))
                 Text(
                     text = location,
                     color = Color.White,
-                    fontSize = RowTextSize,
+                    fontSize = RefRowTextSize.scaled(),
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Clip,
@@ -150,19 +164,20 @@ fun CarLocationRow(
 /** Compact full-details popover: full car name + full location, in the post-options glass style. */
 @Composable
 private fun CarDetailsPopover(carName: String, location: String?) {
+    val cornerRadius = RefPopoverCornerRadius.scaled()
     Column(
         modifier = Modifier
-            .widthIn(max = 280.dp)
-            .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
+            .widthIn(max = RefPopoverMaxWidth.scaled())
+            .shadow(elevation = 16.dp, shape = RoundedCornerShape(cornerRadius))
+            .clip(RoundedCornerShape(cornerRadius))
             .background(PopoverSurface)
-            .border(1.dp, PopoverBorder, RoundedCornerShape(16.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .border(1.dp, PopoverBorder, RoundedCornerShape(cornerRadius))
+            .padding(horizontal = RefPopoverPaddingH.scaled(), vertical = RefPopoverPaddingV.scaled()),
+        verticalArrangement = Arrangement.spacedBy(RefPopoverItemSpacing.scaled()),
     ) {
-        DetailRow(iconRes = R.drawable.ic_car, iconSize = 16.dp, text = carName)
+        DetailRow(iconRes = R.drawable.ic_car, iconSize = RefPopoverCarIconSize.scaled(), text = carName)
         if (location != null) {
-            DetailRow(iconRes = R.drawable.ic_gps, iconSize = 17.dp, text = location)
+            DetailRow(iconRes = R.drawable.ic_gps, iconSize = RefPopoverGpsIconSize.scaled(), text = location)
         }
     }
 }
@@ -175,13 +190,13 @@ private fun DetailRow(iconRes: Int, iconSize: Dp, text: String) {
             contentDescription = null,
             modifier = Modifier.size(iconSize),
         )
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(RefPopoverIconTextSpacing.scaled()))
         // Full, untruncated text — wraps within the compact max width for very long values.
         Text(
             text = text,
             color = Color.White,
             fontFamily = Poppins,
-            fontSize = 13.3.sp,
+            fontSize = RefPopoverFontSize.scaled(),
         )
     }
 }

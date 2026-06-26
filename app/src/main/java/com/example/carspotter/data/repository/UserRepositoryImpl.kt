@@ -8,10 +8,12 @@ import com.example.carspotter.core.network.safeApiCall
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface UserRepository {
+    suspend fun getUserById(userId: UUID): ApiResult<User>
     suspend fun getCurrentUser(): ApiResult<User>
     suspend fun getAllUsers(): ApiResult<List<User>>
     suspend fun getUsersByUsername(username: String): ApiResult<List<User>>
@@ -24,6 +26,13 @@ interface UserRepository {
 class UserRepositoryImpl @Inject constructor(
     private val userApi: UserApi
 ) : UserRepository {
+
+    override suspend fun getUserById(userId: UUID): ApiResult<User> {
+        return when (val result = safeApiCall { userApi.getUserById(userId) }) {
+            is ApiResult.Success -> ApiResult.Success(result.data)
+            is ApiResult.Error -> ApiResult.Error(result.message)
+        }
+    }
 
     override suspend fun getCurrentUser(): ApiResult<User> {
         return when (val result = safeApiCall { userApi.getCurrentUser()}) {

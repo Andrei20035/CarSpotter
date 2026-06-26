@@ -29,14 +29,33 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.carspotter.R
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 /** Tabs that own a selectable nav slot. The center "+" is intentionally not a tab. */
 enum class FeedNavItem { Home, Leaderboard, Activity, Profile }
+
+// Figma baseline: 362dp pill inside a 402dp screen frame.
+private const val ReferenceWidthDp = 402f
+private const val MinScale = 0.85f
+private const val MaxScale = 1.15f
+
+// Reference dimensions at 1.0× (Pixel 9 Pro, 402dp screen width).
+private val RefSideMargin = 20.dp
+private val RefNavBarHeight = 64.dp
+private val RefInnerPadding = 27.dp
+private val RefCornerRadius = 32.dp
+private val RefIconSize = 32.dp
+private val RefPlusSize = 46.dp
+private val RefShadowBlur = 30.dp
+private val RefShadowOffsetY = (-8).dp
 
 /**
  * Custom floating bottom navigation matching the Figma `feed` design.
@@ -47,6 +66,10 @@ enum class FeedNavItem { Home, Leaderboard, Activity, Profile }
  * Selection is fully driven by [selected] (state is hoisted to the caller), so it survives
  * recomposition and configuration changes. Active tabs swap to their bolder `*_selected`
  * vector; the Profile tab shows the user's avatar with a white ring when active.
+ *
+ * All internal dimensions scale linearly with the screen width relative to the 402dp Figma
+ * baseline, clamped to [MinScale, MaxScale] so the bar stays proportional on every device
+ * while Pixel 9 Pro (402dp) always renders at exactly 1.0×.
  */
 @Composable
 fun FloatingBottomNav(
@@ -57,50 +80,71 @@ fun FloatingBottomNav(
     onPlus: () -> Unit,
     onActivity: () -> Unit,
     onProfile: () -> Unit,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier,
 ) {
+    val scale = (LocalConfiguration.current.screenWidthDp / ReferenceWidthDp).coerceIn(MinScale, MaxScale)
+    val cornerRadius = RefCornerRadius * scale
+    val navBarShape = RoundedCornerShape(cornerRadius)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             // Pill side margins: Figma 362dp pill within the 402dp frame → ~20dp each side.
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = RefSideMargin * scale)
             // Figma drop shadow: #000000 @25%, X 0 / Y -8 (upward), blur 30, spread 0.
             // Drawn behind (unclipped) so it doesn't affect the measured size or layout.
             .glassDropShadow(
-                cornerRadius = NavBarCornerRadius,
+                cornerRadius = cornerRadius,
                 color = Color.Black.copy(alpha = 0.25f),
-                blur = 30.dp,
+                blur = RefShadowBlur * scale,
                 offsetX = 0.dp,
-                offsetY = (-8).dp,
+                offsetY = RefShadowOffsetY * scale,
             )
-            .clip(NavBarShape)
-            .background(NavBarFill)
-            .border(width = 1.dp, color = NavBarBorder, shape = NavBarShape)
-            .height(64.dp)
+            .clip(navBarShape)
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState) {
+                        blurRadius = 30.dp
+                        tints = listOf(
+                            HazeTint(Color(0xFF00161F).copy(alpha = 0.25f)),
+                        )
+                        noiseFactor = 0.12f
+                    }
+                } else {
+                    Modifier.background(NavBarFill)
+                }
+            )
+            .border(width = 1.dp, color = NavBarBorder, shape = navBarShape)
+            .height(RefNavBarHeight * scale)
             // Inner padding tuned so the five slots land on the Figma icon centers.
-            .padding(horizontal = 27.dp),
+            .padding(horizontal = RefInnerPadding * scale),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         NavIcon(
             res = if (selected == FeedNavItem.Home) R.drawable.home_button_selected else R.drawable.home_button,
             contentDescription = "Home",
+            size = RefIconSize * scale,
             onClick = onHome,
         )
         NavIcon(
             res = if (selected == FeedNavItem.Leaderboard) R.drawable.leaderboard_selected else R.drawable.leaderboard,
             contentDescription = "Leaderboard",
+            size = RefIconSize * scale,
             onClick = onLeaderboard,
         )
-        PlusButton(onClick = onPlus)
+        PlusButton(size = RefPlusSize * scale, onClick = onPlus)
         NavIcon(
             res = if (selected == FeedNavItem.Activity) R.drawable.activity_selected else R.drawable.activity,
             contentDescription = "Activity",
+            size = RefIconSize * scale,
             onClick = onActivity,
         )
         ProfileTab(
             profilePictureUrl = profilePictureUrl,
             selected = selected == FeedNavItem.Profile,
+            size = RefIconSize * scale,
             onClick = onProfile,
         )
     }
@@ -110,15 +154,16 @@ fun FloatingBottomNav(
 private fun NavIcon(
     @DrawableRes res: Int,
     contentDescription: String,
+    size: Dp,
     onClick: () -> Unit,
 ) {
     Image(
         painter = painterResource(res),
         contentDescription = contentDescription,
-        // Fit keeps each glyph's intrinsic aspect ratio (e.g. the 21×27 flame) inside the 32dp slot.
+        // Fit keeps each glyph's intrinsic aspect ratio (e.g. the 21×27 flame) inside the slot.
         contentScale = ContentScale.Fit,
         modifier = Modifier
-            .size(32.dp)
+            .size(size)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -132,12 +177,12 @@ private fun NavIcon(
  * visually elevated via its larger size and own drop shadow.
  */
 @Composable
-private fun PlusButton(onClick: () -> Unit) {
+private fun PlusButton(size: Dp, onClick: () -> Unit) {
     Image(
         painter = painterResource(R.drawable.plus_button),
         contentDescription = "Post your find",
         modifier = Modifier
-            .size(46.dp)
+            .size(size)
             .shadow(elevation = 12.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .clickable(
@@ -152,10 +197,11 @@ private fun PlusButton(onClick: () -> Unit) {
 private fun ProfileTab(
     profilePictureUrl: String?,
     selected: Boolean,
+    size: Dp,
     onClick: () -> Unit,
 ) {
     val base = Modifier
-        .size(32.dp)
+        .size(size)
         .clip(CircleShape)
         .then(
             if (selected) Modifier.border(2.dp, Color.White, CircleShape) else Modifier
@@ -184,10 +230,6 @@ private fun ProfileTab(
         )
     }
 }
-
-// Fully rounded pill (Figma radius 100 on a 64dp-tall bar → capsule).
-private val NavBarCornerRadius = 32.dp
-private val NavBarShape = RoundedCornerShape(NavBarCornerRadius)
 
 // Glassy dark-teal fill. Figma layers a near-transparent fill over a 30px *backdrop* blur.
 // Compose has no clean first-party backdrop blur, so the production-safe equivalent is a

@@ -10,7 +10,12 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object Map : Screen("map")
     object Home : Screen("home")
-    object Profile : Screen("profile")
+    object Profile : Screen("profile") {
+        const val ARG_USER_ID = "userId"
+        const val FOREIGN_ROUTE = "profile/{$ARG_USER_ID}"
+
+        fun createRoute(userId: java.util.UUID): String = "profile/$userId"
+    }
     object Camera : Screen("camera")
     object Leaderboard : Screen("leaderboard")
 

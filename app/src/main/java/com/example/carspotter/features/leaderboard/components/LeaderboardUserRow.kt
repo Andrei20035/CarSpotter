@@ -32,7 +32,7 @@ import java.util.Locale
 private val RowShape       = RoundedCornerShape(12.dp)
 private val RowBackground  = Color(0xFF1C1C1C)
 private val RowBorder      = Color(0xFF5D5D5D)
-private val StreakColor    = Color(0x524E4E4E)
+private val StreakColor    = Color(0xFFFF6641)
 
 @Composable
 fun LeaderboardUserRow(
@@ -88,20 +88,22 @@ fun LeaderboardUserRow(
                 fontWeight = FontWeight.Medium,
                 fontSize = 16.sp,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(R.drawable.fire),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .width(10.dp)
-                        .height(12.dp),
-                )
-                Spacer(Modifier.width(3.dp))
-                Text(
-                    text = "${entry.streakDays} Day Streak",
-                    color = StreakColor,
-                    fontSize = 10.sp,
-                )
+            if (entry.streakDays > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(R.drawable.fire),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .width(10.dp)
+                            .height(12.dp),
+                    )
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        text = "${entry.streakDays} Days",
+                        color = StreakColor,
+                        fontSize = 10.sp,
+                    )
+                }
             }
         }
     }

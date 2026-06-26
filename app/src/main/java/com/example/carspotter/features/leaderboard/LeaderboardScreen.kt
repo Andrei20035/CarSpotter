@@ -17,6 +17,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +43,7 @@ fun LeaderboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val openPostCreation = rememberPostCreationLauncher(navController)
+    val hazeState = remember { HazeState() }
 
     AppScreenBackground(
         foreground = {
@@ -61,6 +65,7 @@ fun LeaderboardScreen(
                         launchSingleTop = true
                     }
                 },
+                hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
@@ -94,11 +99,11 @@ fun LeaderboardScreen(
                 PullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = { viewModel.refresh() },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().hazeSource(hazeState),
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 140.dp),
+                        contentPadding = PaddingValues(bottom = 140.dp, top = 13.dp),
                     ) {
                         uiState.currentUser?.let { standing ->
                             item {

@@ -191,6 +191,10 @@ fun PictureContainer(
 data class ImageTransformState(
     val scale: Float = 1f,
     val offset: Offset = Offset.Zero,
+    /** Preview container size in raw pixels (filled once the layout is measured). */
+    val containerSize: IntSize = IntSize.Zero,
+    /** Oriented image size in pixels as decoded by Coil (filled once the image loads). */
+    val imageSize: Size = Size.Unspecified,
 )
 
 @Composable
@@ -271,7 +275,9 @@ fun EditableImageContainer(
         onTransformChanged?.invoke(
             ImageTransformState(
                 scale = clampedScale,
-                offset = clampedOffset
+                offset = clampedOffset,
+                containerSize = containerSize,
+                imageSize = imageSize,
             )
         )
     }

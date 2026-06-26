@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,9 @@ import androidx.compose.ui.window.PopupProperties
 import com.example.carspotter.R
 import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.data.model.ReportReason
+import com.example.carspotter.core.ui.scaling.LocalFeedScale
+import com.example.carspotter.core.ui.scaling.rememberFeedScale
+import com.example.carspotter.core.ui.scaling.scaled
 
 // --- Dropdown palette: a slightly raised, opaque dark surface over the navy feed. ---
 private val MenuSurface = Color(0xFF1B1F33)
@@ -51,6 +55,21 @@ private val MenuBorder = Color(0x1FFFFFFF) // white @ ~12% — the hairline used
 private val MenuTextPrimary = Color.White
 private val MenuTextDanger = Color(0xFFFF5A5F) // red used for the report (destructive) actions.
 private val MenuDivider = Color(0x14FFFFFF)
+
+// Reference dimensions (Pixel 9 Pro baseline, scale == 1.0).
+private val RefMenuButtonSize = 32.dp
+private val RefMenuButtonIconSize = 28.dp
+private val RefMenuOffsetY = 24.dp
+private val RefDropdownWidth = 248.dp
+private val RefDropdownCornerRadius = 16.dp
+private val RefDropdownPaddingV = 6.dp
+private val RefMenuRowPaddingH = 16.dp
+private val RefMenuRowPaddingV = 13.dp
+private val RefMenuIconSize = 20.dp
+private val RefMenuIconTextSpacing = 14.dp
+private val RefMenuFontSize = 14.sp
+private val RefDividerPaddingH = 12.dp
+private val RefReportSpinnerSize = 18.dp
 
 /**
  * The post header's three-dot affordance plus its anchored dropdown menu.
@@ -66,45 +85,49 @@ fun PostOptionsMenu(
     onReportReasonSelected: (ReportReason) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val verticalOffsetPx = with(LocalDensity.current) { 24.dp.roundToPx() }
+    // Popup shares the same Android window as the parent, so CompositionLocals flow through.
+    // We still provide here explicitly in case PostOptionsMenu is ever used outside the feed provider.
+    CompositionLocalProvider(LocalFeedScale provides rememberFeedScale()) {
+        var expanded by remember { mutableStateOf(false) }
+        val verticalOffsetPx = with(LocalDensity.current) { RefMenuOffsetY.scaled().roundToPx() }
 
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { expanded = true },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(R.drawable.post_options),
-                contentDescription = "Post options",
-                modifier = Modifier.size(28.dp),
-            )
-        }
-
-        if (expanded) {
-            Popup(
-                alignment = Alignment.TopEnd,
-                offset = androidx.compose.ui.unit.IntOffset(0, verticalOffsetPx),
-                onDismissRequest = { expanded = false },
-                properties = PopupProperties(focusable = true),
+        Box(modifier = modifier) {
+            Box(
+                modifier = Modifier
+                    .size(RefMenuButtonSize.scaled())
+                    .clip(CircleShape)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { expanded = true },
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                PostOptionsDropdown(
-                    onShare = {
-                        expanded = false
-                        onShare()
-                    },
-                    onReportReasonSelected = { reason ->
-                        expanded = false
-                        onReportReasonSelected(reason)
-                    },
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.post_options),
+                    contentDescription = "Post options",
+                    modifier = Modifier.size(RefMenuButtonIconSize.scaled()),
                 )
+            }
+
+            if (expanded) {
+                Popup(
+                    alignment = Alignment.TopEnd,
+                    offset = androidx.compose.ui.unit.IntOffset(0, verticalOffsetPx),
+                    onDismissRequest = { expanded = false },
+                    properties = PopupProperties(focusable = true),
+                ) {
+                    PostOptionsDropdown(
+                        onShare = {
+                            expanded = false
+                            onShare()
+                        },
+                        onReportReasonSelected = { reason ->
+                            expanded = false
+                            onReportReasonSelected(reason)
+                        },
+                    )
+                }
             }
         }
     }
@@ -115,14 +138,15 @@ private fun PostOptionsDropdown(
     onShare: () -> Unit,
     onReportReasonSelected: (ReportReason) -> Unit,
 ) {
+    val cornerRadius = RefDropdownCornerRadius.scaled()
     Column(
         modifier = Modifier
-            .width(248.dp)
-            .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
+            .width(RefDropdownWidth.scaled())
+            .shadow(elevation = 16.dp, shape = RoundedCornerShape(cornerRadius))
+            .clip(RoundedCornerShape(cornerRadius))
             .background(MenuSurface)
-            .border(1.dp, MenuBorder, RoundedCornerShape(16.dp))
-            .padding(vertical = 6.dp),
+            .border(1.dp, MenuBorder, RoundedCornerShape(cornerRadius))
+            .padding(vertical = RefDropdownPaddingV.scaled()),
     ) {
         MenuRow(
             icon = Icons.Outlined.Share,
@@ -156,22 +180,22 @@ private fun MenuRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .padding(horizontal = RefMenuRowPaddingH.scaled(), vertical = RefMenuRowPaddingV.scaled()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(RefMenuIconSize.scaled()),
         )
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(RefMenuIconTextSpacing.scaled()))
         Text(
             text = label,
             color = tint,
             fontFamily = Poppins,
             fontWeight = FontWeight.Medium,
-            fontSize = 14.sp,
+            fontSize = RefMenuFontSize.scaled(),
         )
     }
 }
@@ -181,8 +205,8 @@ private fun MenuDividerLine() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .height(1.dp)
+            .padding(horizontal = RefDividerPaddingH.scaled())
+            .height(1.dp) // border thickness — never scaled
             .background(MenuDivider),
     )
 }
@@ -198,25 +222,31 @@ fun SubmitReportDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = { if (!isSubmitting) onDismiss() },
-        title = { Text("Submit Report") },
-        text = { Text(reason.confirmationMessage) },
-        confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !isSubmitting) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Submit Report", color = MenuTextDanger, fontWeight = FontWeight.SemiBold)
+    // AlertDialog creates a new Android window — re-derive scale.
+    CompositionLocalProvider(LocalFeedScale provides rememberFeedScale()) {
+        AlertDialog(
+            onDismissRequest = { if (!isSubmitting) onDismiss() },
+            title = { Text("Submit Report") },
+            text = { Text(reason.confirmationMessage) },
+            confirmButton = {
+                TextButton(onClick = onConfirm, enabled = !isSubmitting) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(RefReportSpinnerSize.scaled()),
+                            strokeWidth = 2.dp, // stroke — never scaled
+                        )
+                    } else {
+                        Text("Submit Report", color = MenuTextDanger, fontWeight = FontWeight.SemiBold)
+                    }
                 }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSubmitting) {
-                Text("Cancel")
-            }
-        },
-    )
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss, enabled = !isSubmitting) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
 /** Menu label shown in the dropdown for each report reason. */

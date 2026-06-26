@@ -32,7 +32,7 @@ import java.util.Locale
 private val CardBackground  = Color(0xFF1C1C1C)
 private val CardBorder      = Color(0xFF5D5D5D)
 private val TextMuted       = Color(0xFF9D9D9D)
-private val StreakTextColor = Color(0x524E4E4E)
+private val StreakTextColor = Color(0xFFFF6641)
 private val CardShape       = RoundedCornerShape(12.dp)
 
 @Composable
@@ -84,35 +84,38 @@ fun CurrentUserLeaderboardCard(
 
         Spacer(Modifier.width(10.dp))
 
-        // ── "You" label ───────────────────────────────────────────────────
-        Text(
-            text = "You",
-            color = TextMuted,
-            fontSize = 13.sp,
-        )
-
-        Spacer(Modifier.width(10.dp))
-
-        // ── Streak (centred, fills remaining space) ───────────────────────
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
         ) {
-            Image(
-                painter = painterResource(R.drawable.fire),
-                contentDescription = null,
-                modifier = Modifier
-                    .width(10.dp)
-                    .height(12.dp),
-            )
-            Spacer(Modifier.width(3.dp))
+            // ── "You" label ───────────────────────────────────────────────────
             Text(
-                text = "${standing.entry.streakDays} Day Streak",
-                color = StreakTextColor,
-                fontSize = 10.sp,
+                text = "You",
+                color = TextMuted,
+                fontFamily = Poppins,
+                fontSize = 13.sp,
             )
+
+            // ── Streak (centred, fills remaining space) ───────────────────────
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.fire),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .width(10.dp)
+                        .height(12.dp),
+                )
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    text = "${standing.entry.streakDays} Days",
+                    color = StreakTextColor,
+                    fontSize = 12.sp,
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // ── SpotScore ─────────────────────────────────────────────────────
         Column(
@@ -120,15 +123,16 @@ fun CurrentUserLeaderboardCard(
             horizontalAlignment = Alignment.End,
         ) {
             Text(
+                text = "SpotScore",
+                color = TextMuted,
+                fontSize = 13.sp,
+                fontFamily = Poppins
+            )
+            Text(
                 text = formatScore(standing.entry.spotScore),
                 color = Color.White,
                 fontWeight = FontWeight.Medium,
                 fontSize = 16.sp,
-            )
-            Text(
-                text = "SpotScore",
-                color = TextMuted,
-                fontSize = 13.sp,
             )
         }
     }

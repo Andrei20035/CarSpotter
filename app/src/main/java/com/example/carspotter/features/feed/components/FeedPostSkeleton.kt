@@ -17,6 +17,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.carspotter.core.ui.components.shimmer
+import com.example.carspotter.core.ui.scaling.scaled
+
+// Reference dimensions — must mirror FeedPostCard exactly (Pixel 9 Pro baseline, scale == 1.0).
+private val RefAvatarSize = 37.dp
+private val RefAvatarUsernameSpacing = 8.dp
+private val RefSkeletonUsernameHeight = 13.dp
+private val RefSkeletonUsernameWidth = 96.dp
+private val RefSkeletonHeaderRowSpacing = 6.dp
+private val RefSkeletonLocationHeight = 11.dp
+private val RefSkeletonLocationWidth = 150.dp
+private val RefHeaderTrailingSpacing = 8.dp
+private val RefHeaderBottomSpacing = 9.dp
+private val RefImageCornerRadius = 18.dp
+private val RefImageBottomSpacing = 14.dp
+private val RefEngagementIndent = 12.dp
+private val RefSkeletonEngagementHeight = 12.dp
+private val RefEngagementBottomSpacing = 12.dp
+private val RefCaptionIndent = 12.dp
+private val RefSkeletonCaptionHeight = 12.dp
 
 /**
  * Visual-only loading placeholder that mirrors the structure and spacing of a real feed post
@@ -31,48 +50,48 @@ fun FeedPostSkeleton(modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ---- Header: avatar · username/location · options ----
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(37.dp).shimmer(CircleShape))
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.size(RefAvatarSize.scaled()).shimmer(CircleShape))
+            Spacer(modifier = Modifier.width(RefAvatarUsernameSpacing.scaled()))
             Column(modifier = Modifier.weight(1f)) {
-                Box(modifier = Modifier.height(13.dp).width(96.dp).shimmer())
-                Spacer(modifier = Modifier.height(6.dp))
-                Box(modifier = Modifier.height(11.dp).width(150.dp).shimmer())
+                Box(modifier = Modifier.height(RefSkeletonUsernameHeight.scaled()).width(RefSkeletonUsernameWidth.scaled()).shimmer())
+                Spacer(modifier = Modifier.height(RefSkeletonHeaderRowSpacing.scaled()))
+                Box(modifier = Modifier.height(RefSkeletonLocationHeight.scaled()).width(RefSkeletonLocationWidth.scaled()).shimmer())
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(RefHeaderTrailingSpacing.scaled()))
         }
 
-        Spacer(modifier = Modifier.height(9.dp))
+        Spacer(modifier = Modifier.height(RefHeaderBottomSpacing.scaled()))
 
         // ---- Main image card (same 375×468 aspect + 18dp radius as the real post) ----
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(375f / 468f)
-                .shimmer(RoundedCornerShape(18.dp))
+                .shimmer(RoundedCornerShape(RefImageCornerRadius.scaled()))
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(RefImageBottomSpacing.scaled()))
 
         // ---- Engagement row (like icon + count · comment icon + count), indented like the real one ----
         Row(
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = RefEngagementIndent.scaled()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .height(12.dp)
+                    .height(RefSkeletonEngagementHeight.scaled())
                     .fillMaxWidth(0.4f)
                     .shimmer()
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(RefEngagementBottomSpacing.scaled()))
 
         // ---- Caption line ----
         Box(
             modifier = Modifier
-                .padding(start = 12.dp)
-                .height(12.dp)
+                .padding(start = RefCaptionIndent.scaled())
+                .height(RefSkeletonCaptionHeight.scaled())
                 .fillMaxWidth(0.6f)
                 .shimmer()
         )

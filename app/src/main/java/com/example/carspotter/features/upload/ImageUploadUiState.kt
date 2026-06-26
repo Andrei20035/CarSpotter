@@ -2,6 +2,7 @@ package com.example.carspotter.features.upload
 
 import android.net.Uri
 import com.example.carspotter.data.remote.dto.car_model.CarModelOption
+import com.example.carspotter.features.profile.components.ImageTransformState
 
 /** Subtle, non-blocking state of the optional location capture. */
 enum class LocationStatus { Idle, Resolving, Added, Unavailable }
@@ -36,6 +37,9 @@ data class ImageUploadUiState(
     val modelDropdownOpen: Boolean = false,
 
     val description: String = "",
+
+    /** Last transform emitted by the preview card; null until the image loads. */
+    val cropTransform: ImageTransformState? = null,
 
     val isPosting: Boolean = false,
     val postSuccess: Boolean = false,

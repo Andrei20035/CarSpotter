@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,9 @@ import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.core.util.toRelativeTime
 import com.example.carspotter.data.model.Comment
 import com.example.carspotter.features.feed.CommentsSheetState
+import com.example.carspotter.core.ui.scaling.LocalFeedScale
+import com.example.carspotter.core.ui.scaling.rememberFeedScale
+import com.example.carspotter.core.ui.scaling.scaled
 
 // Sheet palette — consistent with the dark feed surface.
 private val SheetSurface = Color(0xFF11162E)
@@ -62,6 +66,30 @@ private val TextPrimary = Color.White
 private val TextSecondary = Color(0xB3FFFFFF) // white @ 70%
 private val TextTertiary = Color(0x80FFFFFF)   // white @ 50%
 private val FieldBorder = Color(0x1FFFFFFF)
+
+// Reference dimensions (Pixel 9 Pro baseline, scale == 1.0).
+private val RefSheetCornerRadius = 20.dp
+private val RefTitleFontSize = 16.sp
+private val RefTitleBottomPadding = 8.dp
+private val RefListPaddingH = 16.dp
+private val RefListPaddingV = 8.dp
+private val RefCommentSpacing = 18.dp
+private val RefAvatarSize = 34.dp
+private val RefAvatarTextSpacing = 10.dp
+private val RefUsernameFontSize = 13.sp
+private val RefUsernameTimestampSpacing = 8.dp
+private val RefTimestampFontSize = 11.sp
+private val RefCommentBodyFontSize = 13.sp
+private val RefEmptyTitleFontSize = 15.sp
+private val RefEmptySubtitleFontSize = 13.sp
+private val RefEmptyTitleSubtitleSpacing = 4.dp
+private val RefErrorFontSize = 14.sp
+private val RefInputPaddingH = 12.dp
+private val RefInputPaddingV = 10.dp
+private val RefInputGroupSpacing = 8.dp
+private val RefInputCornerRadius = 24.dp
+private val RefInputFontSize = 14.sp
+private val RefInputSpinnerSize = 20.dp
 
 /**
  * Instagram-style comments overlay: a modal bottom sheet with rounded top corners, a dark
@@ -91,69 +119,75 @@ fun CommentsSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = SheetSurface,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = RefSheetCornerRadius, topEnd = RefSheetCornerRadius),
         dragHandle = { BottomSheetDefaults.DragHandle(color = TextTertiary) },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f),
-        ) {
-            Text(
-                text = "Comments",
-                color = TextPrimary,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
+        // ModalBottomSheet creates a new Android window — re-derive scale inside its content.
+        CompositionLocalProvider(LocalFeedScale provides rememberFeedScale()) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
+                    .fillMaxHeight(0.9f), // fraction — not scaled
+            ) {
+                Text(
+                    text = "Comments",
+                    color = TextPrimary,
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = RefTitleFontSize.scaled(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = RefTitleBottomPadding.scaled()),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
 
-            Box(modifier = Modifier.weight(1f)) {
-                when {
-                    state.isLoading && state.comments.isEmpty() -> CenteredBox {
-                        CircularProgressIndicator(color = SheetAccent)
-                    }
+                Box(modifier = Modifier.weight(1f)) {
+                    when {
+                        state.isLoading && state.comments.isEmpty() -> CenteredBox {
+                            CircularProgressIndicator(color = SheetAccent)
+                        }
 
-                    state.errorMessage != null && state.comments.isEmpty() -> CenteredBox {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Couldn't load comments", color = TextSecondary, fontSize = 14.sp)
-                            TextButton(onClick = onRetry) {
-                                Text("Retry", color = SheetAccent, fontWeight = FontWeight.SemiBold)
+                        state.errorMessage != null && state.comments.isEmpty() -> CenteredBox {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Couldn't load comments", color = TextSecondary, fontSize = RefErrorFontSize.scaled())
+                                TextButton(onClick = onRetry) {
+                                    Text("Retry", color = SheetAccent, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+
+                        state.comments.isEmpty() -> CenteredBox {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("No comments yet", color = TextSecondary, fontSize = RefEmptyTitleFontSize.scaled())
+                                Spacer(modifier = Modifier.height(RefEmptyTitleSubtitleSpacing.scaled()))
+                                Text("Be the first to comment.", color = TextTertiary, fontSize = RefEmptySubtitleFontSize.scaled())
+                            }
+                        }
+
+                        else -> LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(
+                                horizontal = RefListPaddingH.scaled(),
+                                vertical = RefListPaddingV.scaled(),
+                            ),
+                        ) {
+                            items(state.comments, key = { it.id }) { comment ->
+                                CommentRow(comment)
+                                Spacer(modifier = Modifier.height(RefCommentSpacing.scaled()))
                             }
                         }
                     }
-
-                    state.comments.isEmpty() -> CenteredBox {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("No comments yet", color = TextSecondary, fontSize = 15.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("Be the first to comment.", color = TextTertiary, fontSize = 13.sp)
-                        }
-                    }
-
-                    else -> LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        items(state.comments, key = { it.id }) { comment ->
-                            CommentRow(comment)
-                            Spacer(modifier = Modifier.height(18.dp))
-                        }
-                    }
                 }
-            }
 
-            CommentInputBar(
-                draft = state.draft,
-                canSend = state.canSend,
-                isSubmitting = state.isSubmitting,
-                onDraftChange = onDraftChange,
-                onSend = onSend,
-            )
+                CommentInputBar(
+                    draft = state.draft,
+                    canSend = state.canSend,
+                    isSubmitting = state.isSubmitting,
+                    onDraftChange = onDraftChange,
+                    onSend = onSend,
+                )
+            }
         }
     }
 }
@@ -162,7 +196,7 @@ fun CommentsSheet(
 private fun CommentRow(comment: Comment) {
     Row(modifier = Modifier.fillMaxWidth()) {
         val avatarModifier = Modifier
-            .size(34.dp)
+            .size(RefAvatarSize.scaled())
             .clip(CircleShape)
         if (comment.profilePictureUrl.isNullOrBlank()) {
             androidx.compose.foundation.Image(
@@ -183,7 +217,7 @@ private fun CommentRow(comment: Comment) {
             )
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(RefAvatarTextSpacing.scaled()))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -192,27 +226,27 @@ private fun CommentRow(comment: Comment) {
                     color = TextPrimary,
                     fontFamily = Poppins,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
+                    fontSize = RefUsernameFontSize.scaled(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 comment.createdAt?.let { createdAt ->
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(RefUsernameTimestampSpacing.scaled()))
                     Text(
                         text = createdAt.toRelativeTime(),
                         color = TextTertiary,
                         fontFamily = Poppins,
-                        fontSize = 11.sp,
+                        fontSize = RefTimestampFontSize.scaled(),
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(2.dp)) // sub-pixel gap — not scaled
             Text(
                 text = comment.text,
                 color = TextSecondary,
                 fontFamily = Poppins,
-                fontSize = 13.sp,
+                fontSize = RefCommentBodyFontSize.scaled(),
             )
         }
     }
@@ -230,11 +264,11 @@ private fun CommentInputBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(SheetSurface)
-            .navigationBarsPadding()
-            .imePadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .navigationBarsPadding() // system inset — never scaled
+            .imePadding()            // keyboard inset — never scaled
+            .padding(horizontal = RefInputPaddingH.scaled(), vertical = RefInputPaddingV.scaled()),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(RefInputGroupSpacing.scaled()),
     ) {
         OutlinedTextField(
             value = draft,
@@ -243,8 +277,8 @@ private fun CommentInputBar(
             placeholder = { Text("Add a comment…", color = TextTertiary) },
             enabled = !isSubmitting,
             maxLines = 4,
-            shape = RoundedCornerShape(24.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = Poppins, fontSize = 14.sp),
+            shape = RoundedCornerShape(RefInputCornerRadius.scaled()),
+            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = Poppins, fontSize = RefInputFontSize.scaled()),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
             colors = OutlinedTextFieldDefaults.colors(
@@ -259,8 +293,8 @@ private fun CommentInputBar(
         IconButton(onClick = onSend, enabled = canSend) {
             if (isSubmitting) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(RefInputSpinnerSize.scaled()),
+                    strokeWidth = 2.dp, // stroke — never scaled
                     color = SheetAccent,
                 )
             } else {

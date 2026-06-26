@@ -75,6 +75,7 @@ fun SeePostOverlay(
     onConfirmDelete: () -> Unit,
     onDismissDeleteConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    canDelete: Boolean = true,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -144,10 +145,12 @@ fun SeePostOverlay(
                         fontSize = 15.sp,
                     )
 
-                    PostDeleteMenu(
-                        isDeleting = isDeleting,
-                        onDeleteClick = onDeleteClick,
-                    )
+                    if (canDelete) {
+                        PostDeleteMenu(
+                            isDeleting = isDeleting,
+                            onDeleteClick = onDeleteClick,
+                        )
+                    }
                 }
 
                 // Post image

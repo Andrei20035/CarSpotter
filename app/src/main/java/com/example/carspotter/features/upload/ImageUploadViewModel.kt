@@ -4,8 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carspotter.core.image.CropTransform
 import com.example.carspotter.core.image.ImageCompressor
 import com.example.carspotter.core.network.ApiResult
+import com.example.carspotter.features.profile.components.ImageTransformState
 import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.data.remote.dto.post.CreatePostMetadata
 import com.example.carspotter.data.repository.CarModelRepository
@@ -177,6 +179,11 @@ class ImageUploadViewModel @Inject constructor(
 
     fun onDescriptionChange(text: String) = _uiState.update { it.copy(description = text) }
 
+    // ---- Transform (pinch/pan from the preview card) ----
+
+    fun onTransformChanged(state: ImageTransformState) =
+        _uiState.update { it.copy(cropTransform = state) }
+
     // ---- Post ----
 
     fun post() {
@@ -188,9 +195,14 @@ class ImageUploadViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isPosting = true) }
 
+            val cropTransform = state.cropTransform?.toCropTransformOrNull()
             val compressed = runCatching {
-                imageCompressor.compress(imageUri, ImageCompressor.CarParams)
-            }.getOrElse { e ->
+                if (cropTransform != null) {
+                    imageCompressor.compressWithCrop(imageUri, ImageCompressor.CarParams, cropTransform)
+                } else {
+                    imageCompressor.compress(imageUri, ImageCompressor.CarParams)
+                }
+            }.getOrElse {
                 _uiState.update {
                     it.copy(isPosting = false, userMessage = "Couldn't process the image. Please try again.")
                 }
@@ -219,4 +231,22 @@ class ImageUploadViewModel @Inject constructor(
     }
 
     fun consumeUserMessage() = _uiState.update { it.copy(userMessage = null) }
+}
+
+/**
+ * Converts [ImageTransformState] to [CropTransform] only when geometry is fully available:
+ * - imageSize is specified (image has finished loading in the preview)
+ * - containerSize is non-zero (layout has been measured)
+ * Returns null when either piece is missing → caller falls back to center-crop.
+ */
+private fun ImageTransformState.toCropTransformOrNull(): CropTransform? {
+    if (imageSize.width <= 0f || imageSize.height <= 0f) return null
+    if (containerSize.width <= 0 || containerSize.height <= 0) return null
+    return CropTransform(
+        scale = scale,
+        offsetX = offset.x,
+        offsetY = offset.y,
+        containerW = containerSize.width.toFloat(),
+        containerH = containerSize.height.toFloat(),
+    )
 }

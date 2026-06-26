@@ -5,8 +5,14 @@ import com.example.carspotter.data.remote.dto.user.*
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
+import java.util.UUID
 
 interface UserApi {
+
+    @GET("users/{userId}")
+    suspend fun getUserById(
+        @Path("userId") userId: UUID
+    ): Response<User>
 
     @GET("users/me")
     suspend fun getCurrentUser(): Response<User>

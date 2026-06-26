@@ -39,7 +39,7 @@ fun RankMovementIndicator(
     val label = when (movement) {
         RankMovement.UP   -> "$placesMoved Places"
         RankMovement.DOWN -> "$placesMoved Places"
-        RankMovement.KEEP -> "No Change"
+        RankMovement.KEEP -> ""
     }
 
     Row(

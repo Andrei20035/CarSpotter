@@ -86,6 +86,91 @@ class ImageCompressor @Inject constructor(
     suspend fun compressCarImage(uri: Uri): CompressedImage =
         compress(uri, CarParams)
 
+    /**
+     * Like [compress], but honours the user's pinch/pan transform captured from the preview card.
+     *
+     * The crop region is derived from [transform] via [computeCropRect], which inverts the same
+     * ContentScale.Crop + graphicsLayer mapping used by EditableImageContainer. The oriented
+     * bitmap dimensions must match the image dimensions that Coil reported to the UI — both apply
+     * EXIF correction, so they agree by construction.
+     *
+     * Falls back to a plain center-crop [compress] if [transform] carries no valid image size.
+     */
+    suspend fun compressWithCrop(uri: Uri, params: Params, transform: CropTransform): CompressedImage =
+        withContext(Dispatchers.IO) {
+            var decoded: Bitmap? = null
+            var oriented: Bitmap? = null
+            var cropped: Bitmap? = null
+            var resized: Bitmap? = null
+
+            try {
+                val bounds = decodeBounds(uri)
+
+                // Derive the crop rect in oriented-image coordinates using the preview transform.
+                // We use the raw (full-resolution) oriented dimensions for the math, then scale
+                // the resulting rect by the inSampleSize factor so it maps to the decoded bitmap.
+                val orientedW: Int
+                val orientedH: Int
+                val exifOrientation = readExifOrientation(uri)
+                val swapDimensions = exifOrientation == ExifInterface.ORIENTATION_ROTATE_90 ||
+                    exifOrientation == ExifInterface.ORIENTATION_ROTATE_270 ||
+                    exifOrientation == ExifInterface.ORIENTATION_TRANSPOSE ||
+                    exifOrientation == ExifInterface.ORIENTATION_TRANSVERSE
+                if (swapDimensions) {
+                    orientedW = bounds.outHeight
+                    orientedH = bounds.outWidth
+                } else {
+                    orientedW = bounds.outWidth
+                    orientedH = bounds.outHeight
+                }
+
+                val cropRect = computeCropRect(
+                    imgW = orientedW,
+                    imgH = orientedH,
+                    containerW = transform.containerW,
+                    containerH = transform.containerH,
+                    scale = transform.scale,
+                    offsetX = transform.offsetX,
+                    offsetY = transform.offsetY,
+                )
+
+                // Choose inSampleSize based on the crop size (not the full image), so we don't
+                // lose quality when the user has zoomed in on a small region.
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = calculateInSampleSize(
+                        width = cropRect.width,
+                        height = cropRect.height,
+                        maxWidthPx = params.maxWidthPx,
+                        maxHeightPx = params.maxHeightPx,
+                    )
+                }
+
+                decoded = decodeBitmap(uri, options)
+                oriented = applyExifOrientation(decoded, exifOrientation)
+
+                // Scale the crop rect from full-resolution to the decoded (possibly sub-sampled)
+                // bitmap. oriented dimensions may differ from orientedW/H by inSampleSize.
+                val scaleX = oriented.width.toFloat() / orientedW
+                val scaleY = oriented.height.toFloat() / orientedH
+                val x = (cropRect.left  * scaleX).toInt().coerceIn(0, oriented.width  - 1)
+                val y = (cropRect.top   * scaleY).toInt().coerceIn(0, oriented.height - 1)
+                val w = (cropRect.width  * scaleX).toInt().coerceIn(1, oriented.width  - x)
+                val h = (cropRect.height * scaleY).toInt().coerceIn(1, oriented.height - y)
+
+                cropped = Bitmap.createBitmap(oriented, x, y, w, h)
+                resized = resizeIfNeeded(cropped, params.maxWidthPx, params.maxHeightPx)
+                val bytes = compressToJpeg(resized, params.jpegQuality)
+
+                CompressedImage(bytes = bytes)
+            } catch (exception: ImageCompressionException) {
+                throw exception
+            } catch (exception: Exception) {
+                throw ImageCompressionException("Failed to compress image", exception)
+            } finally {
+                recycleIfDifferent(decoded, oriented, cropped, resized)
+            }
+        }
+
     private fun decodeBounds(uri: Uri): BitmapFactory.Options {
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         openInputStream(uri).use { input ->
@@ -213,6 +298,51 @@ class ImageCompressor @Inject constructor(
         const val JPEG_MIME_TYPE = "image/jpeg"
         private const val ASPECT_RATIO_EPSILON = 0.01f
 
+        /**
+         * Pure math, no Android deps — safe to unit-test on JVM.
+         *
+         * Reproduces the visible region of [EditableImageContainer] given the user's pinch/pan
+         * transform. The container renders the image with ContentScale.Crop (cover), centered,
+         * then applies a graphicsLayer scale [scale] + [offsetX]/[offsetY] translation around the
+         * container center. This inverts that mapping to compute the source rectangle (in oriented
+         * bitmap pixels) that fills the container viewport.
+         *
+         * @param imgW    oriented bitmap width  (px) — after EXIF rotation
+         * @param imgH    oriented bitmap height (px) — after EXIF rotation
+         * @param containerW  preview container width  (px, same density as offset)
+         * @param containerH  preview container height (px, same density as offset)
+         * @param scale   user pinch scale (≥ 1)
+         * @param offsetX user pan offset X (container-space px, positive = right)
+         * @param offsetY user pan offset Y (container-space px, positive = down)
+         */
+        internal fun computeCropRect(
+            imgW: Int,
+            imgH: Int,
+            containerW: Float,
+            containerH: Float,
+            scale: Float,
+            offsetX: Float,
+            offsetY: Float,
+        ): CropRect {
+            // Base cover scale: the factor applied by ContentScale.Crop to fill the container.
+            val s0 = maxOf(containerW / imgW, containerH / imgH)
+            // Effective scale in image-space (container px per image px).
+            val eff = s0 * scale
+
+            // Invert: left/top/right/bottom in oriented image pixels.
+            val left   = imgW / 2f + (0f         - containerW / 2f - offsetX) / eff
+            val right  = imgW / 2f + (containerW  - containerW / 2f - offsetX) / eff
+            val top    = imgH / 2f + (0f         - containerH / 2f - offsetY) / eff
+            val bottom = imgH / 2f + (containerH  - containerH / 2f - offsetY) / eff
+
+            // Clamp to bitmap bounds and ensure non-zero size.
+            val l = left.toInt().coerceIn(0, imgW - 1)
+            val t = top.toInt().coerceIn(0, imgH - 1)
+            val r = right.toInt().coerceIn(l + 1, imgW)
+            val b = bottom.toInt().coerceIn(t + 1, imgH)
+            return CropRect(l, t, r, b)
+        }
+
         val ProfileParams = Params(
             maxWidthPx = 512,
             maxHeightPx = 512,
@@ -226,6 +356,32 @@ class ImageCompressor @Inject constructor(
         )
     }
 }
+
+/** Axis-aligned crop rectangle in oriented bitmap pixels. All values are pixel-exact integers. */
+data class CropRect(val left: Int, val top: Int, val right: Int, val bottom: Int) {
+    val width: Int  get() = right - left
+    val height: Int get() = bottom - top
+}
+
+/**
+ * Captures the user's pinch/pan transform from the preview card, plus the geometry needed
+ * to invert it back to image coordinates.
+ *
+ * All pixel values are in the same unit — container/screen pixels at the display density.
+ *
+ * @param scale      graphicsLayer scale applied by EditableImageContainer (≥ 1)
+ * @param offsetX    graphicsLayer translationX (px), positive = image shifted right
+ * @param offsetY    graphicsLayer translationY (px), positive = image shifted down
+ * @param containerW preview container width  in px (same density as offset)
+ * @param containerH preview container height in px (same density as offset)
+ */
+data class CropTransform(
+    val scale: Float,
+    val offsetX: Float,
+    val offsetY: Float,
+    val containerW: Float,
+    val containerH: Float,
+)
 
 class ImageCompressionException(
     message: String,

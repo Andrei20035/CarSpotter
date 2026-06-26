@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,6 +29,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.example.carspotter.R
+import com.example.carspotter.core.ui.scaling.LocalFeedScale
+import com.example.carspotter.core.ui.scaling.rememberFeedScale
+import com.example.carspotter.core.ui.scaling.scaled
+
+// Reference dimensions (Pixel 9 Pro baseline, scale == 1.0).
+private val RefBlurRadius = 28.dp
+private val RefButtonSpacing = 26.dp
+private val RefCircleOptionSize = 130.dp
 
 /**
  * "Post your find" modal overlay (Figma `post-your-find`): the current screen is blurred/dimmed and
@@ -54,51 +63,54 @@ fun PostYourFindOverlay(
             dismissOnClickOutside = true,
         ),
     ) {
-        val context = LocalContext.current
-        val blurRadiusPx = with(LocalDensity.current) { 28.dp.roundToPx() }
-        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        // Dialog creates a new Android window (new composition) — re-derive scale here.
+        CompositionLocalProvider(LocalFeedScale provides rememberFeedScale()) {
+            val context = LocalContext.current
+            val blurRadiusPx = with(LocalDensity.current) { RefBlurRadius.scaled().roundToPx() }
+            val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
 
-        // Configure the dialog window: blur-behind where supported, otherwise a dim scrim.
-        LaunchedEffect(dialogWindow) {
-            val window = dialogWindow ?: return@LaunchedEffect
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val blurEnabled = context.getSystemService(WindowManager::class.java)
-                    ?.isCrossWindowBlurEnabled == true
-                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                window.attributes = window.attributes.apply { blurBehindRadius = blurRadiusPx }
-                // Light dim when real blur is doing the work (matches Figma's ~22% scrim);
-                // heavier dim as the fallback when blur isn't available.
-                window.setDimAmount(if (blurEnabled) 0.25f else 0.5f)
-            } else {
-                window.setDimAmount(0.5f)
+            // Configure the dialog window: blur-behind where supported, otherwise a dim scrim.
+            LaunchedEffect(dialogWindow) {
+                val window = dialogWindow ?: return@LaunchedEffect
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val blurEnabled = context.getSystemService(WindowManager::class.java)
+                        ?.isCrossWindowBlurEnabled == true
+                    window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    window.attributes = window.attributes.apply { blurBehindRadius = blurRadiusPx }
+                    // Light dim when real blur is doing the work (matches Figma's ~22% scrim);
+                    // heavier dim as the fallback when blur isn't available.
+                    window.setDimAmount(if (blurEnabled) 0.25f else 0.5f)
+                } else {
+                    window.setDimAmount(0.5f)
+                }
             }
-        }
 
-        // Tapping the blurred backdrop (anywhere but the buttons) dismisses.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(26.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // Tapping the blurred backdrop (anywhere but the buttons) dismisses.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                CircleOption(
-                    res = R.drawable.post_with_camera,
-                    contentDescription = "Post with camera",
-                    onClick = onCamera,
-                )
-                CircleOption(
-                    res = R.drawable.post_from_gallery,
-                    contentDescription = "Post from gallery",
-                    onClick = onGallery,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(RefButtonSpacing.scaled()),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircleOption(
+                        res = R.drawable.post_with_camera,
+                        contentDescription = "Post with camera",
+                        onClick = onCamera,
+                    )
+                    CircleOption(
+                        res = R.drawable.post_from_gallery,
+                        contentDescription = "Post from gallery",
+                        onClick = onGallery,
+                    )
+                }
             }
         }
     }
@@ -116,7 +128,7 @@ private fun CircleOption(
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
         modifier = Modifier
-            .size(130.dp)
+            .size(RefCircleOptionSize.scaled())
             .clip(CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

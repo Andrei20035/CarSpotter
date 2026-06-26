@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.serialization.converter)
 
+    implementation(libs.haze)
+
     // Network
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)

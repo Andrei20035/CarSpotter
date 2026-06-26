@@ -1,8 +1,11 @@
 package com.example.carspotter.features.profile.dashboard
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.core.network.ApiResult
+import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.model.FeedPost
 import com.example.carspotter.data.repository.CommentRepository
 import com.example.carspotter.data.repository.LikeRepository
@@ -13,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -20,17 +24,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileDashboardViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
     private val likeRepository: LikeRepository,
     private val commentRepository: CommentRepository,
+    private val userPreferences: UserPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileDashboardUiState())
     val uiState: StateFlow<ProfileDashboardUiState> = _uiState.asStateFlow()
 
     init {
-        loadCurrentUser()
+        val rawUserId = savedStateHandle.get<String>(Screen.Profile.ARG_USER_ID)
+        val targetUserId = rawUserId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        when {
+            rawUserId != null && targetUserId == null ->
+                _uiState.update { it.copy(errorMessage = "Invalid profile ID") }
+            targetUserId == null ->
+                loadCurrentUser()
+            else ->
+                loadForeignProfile(targetUserId)
+        }
     }
 
     private fun loadCurrentUser() {
@@ -38,8 +53,38 @@ class ProfileDashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingUser = true) }
             when (val result = userRepository.getCurrentUser()) {
                 is ApiResult.Success -> {
-                    _uiState.update { it.copy(user = result.data, isLoadingUser = false) }
+                    _uiState.update {
+                        it.copy(
+                            user = result.data,
+                            isLoadingUser = false,
+                            isOwnProfile = true,
+                            currentUserId = result.data.id,
+                        )
+                    }
                     loadFirstPage(result.data.id)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoadingUser = false, errorMessage = result.message)
+                }
+            }
+        }
+    }
+
+    private fun loadForeignProfile(targetUserId: UUID) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingUser = true) }
+            val currentUserId = userPreferences.userId.first()
+            when (val result = userRepository.getUserById(targetUserId)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            user = result.data,
+                            isLoadingUser = false,
+                            currentUserId = currentUserId,
+                            isOwnProfile = (targetUserId == currentUserId),
+                        )
+                    }
+                    loadFirstPage(targetUserId)
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoadingUser = false, errorMessage = result.message)
@@ -131,6 +176,7 @@ class ProfileDashboardViewModel @Inject constructor(
     }
 
     fun requestDeletePost() {
+        if (!_uiState.value.isOwnProfile) return
         if (_uiState.value.selectedPostId == null) return
         _uiState.update { it.copy(showDeleteConfirm = true) }
     }
@@ -140,6 +186,7 @@ class ProfileDashboardViewModel @Inject constructor(
     }
 
     fun confirmDeletePost() {
+        if (!_uiState.value.isOwnProfile) return
         val postId = _uiState.value.selectedPostId ?: return
         if (_uiState.value.deleteInFlight != null) return
         _uiState.update { it.copy(deleteInFlight = postId) }

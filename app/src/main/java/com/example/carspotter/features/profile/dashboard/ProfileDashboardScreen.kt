@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -56,6 +58,8 @@ import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
 import com.example.carspotter.core.ui.components.shimmer
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.carspotter.features.feed.components.CommentsSheet
 import com.example.carspotter.features.feed.components.rememberPostCreationLauncher
 
@@ -74,6 +78,7 @@ fun ProfileDashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val gridState = rememberLazyGridState()
     val openPostCreation = rememberPostCreationLauncher(navController)
+    val hazeState = remember { HazeState() }
 
     // Refresh the grid after a post is created from this screen.
     LaunchedEffect(Unit) {
@@ -110,13 +115,14 @@ fun ProfileDashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 120.dp),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().hazeSource(hazeState),
         ) {
             // ── Header: profile row ──────────────────────────────────────
             item(span = { GridItemSpan(maxLineSpan) }) {
                 ProfileHeaderSection(
                     uiState = uiState,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                    onBackClick = { navController.popBackStack() },
                 )
             }
 
@@ -197,38 +203,41 @@ fun ProfileDashboardScreen(
             }
         }
 
-        // Bottom scrim behind the nav bar
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(146.dp)
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
-        )
+        if (uiState.isOwnProfile) {
+            // Bottom scrim behind the nav bar
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(146.dp)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+            )
 
-        FloatingBottomNav(
-            selected = FeedNavItem.Profile,
-            profilePictureUrl = uiState.user?.profilePicturePath,
-            onHome = {
-                navController.navigate(Screen.Feed.route) {
-                    popUpTo(Screen.Feed.route) { inclusive = true }
-                    launchSingleTop = true
-                }
-            },
-            onLeaderboard = {
-                navController.navigate(Screen.Leaderboard.route) {
-                    popUpTo(Screen.Feed.route)
-                    launchSingleTop = true
-                }
-            },
-            onPlus = openPostCreation,
-            onActivity = { /* TODO */ },
-            onProfile = { /* already here */ },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
-        )
+            FloatingBottomNav(
+                selected = FeedNavItem.Profile,
+                profilePictureUrl = uiState.user?.profilePicturePath,
+                hazeState = hazeState,
+                onHome = {
+                    navController.navigate(Screen.Feed.route) {
+                        popUpTo(Screen.Feed.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onLeaderboard = {
+                    navController.navigate(Screen.Leaderboard.route) {
+                        popUpTo(Screen.Feed.route)
+                        launchSingleTop = true
+                    }
+                },
+                onPlus = openPostCreation,
+                onActivity = { /* TODO */ },
+                onProfile = { /* already here */ },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+            )
+        }
 
         // See-post overlay — shown when a grid image is tapped.
         uiState.selectedPost?.let { post ->
@@ -317,7 +326,11 @@ private fun ProfilePostTile(
 }
 
 @Composable
-private fun ProfileHeaderSection(uiState: ProfileDashboardUiState, onSettingsClick: () -> Unit) {
+private fun ProfileHeaderSection(
+    uiState: ProfileDashboardUiState,
+    onSettingsClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -391,13 +404,24 @@ private fun ProfileHeaderSection(uiState: ProfileDashboardUiState, onSettingsCli
                 .background(CardSurface),
             contentAlignment = Alignment.Center,
         ) {
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    painter = painterResource(R.drawable.settings),
-                    contentDescription = "Settings",
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp),
-                )
+            if (uiState.isOwnProfile) {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.settings),
+                        contentDescription = "Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            } else {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
     }

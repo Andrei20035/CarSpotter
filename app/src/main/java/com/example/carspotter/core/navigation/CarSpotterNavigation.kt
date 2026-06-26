@@ -63,6 +63,18 @@ fun CarSpotterNavigation(
         }
 
         composable(
+            route = Screen.Profile.FOREIGN_ROUTE,
+            arguments = listOf(
+                navArgument(Screen.Profile.ARG_USER_ID) {
+                    type = NavType.StringType
+                },
+            ),
+        ) {
+            // The userId nav arg is read by ProfileDashboardViewModel via SavedStateHandle.
+            ProfileDashboardScreen(navController = navController)
+        }
+
+        composable(
             route = Screen.ImageUpload.route,
             arguments = listOf(
                 navArgument(Screen.ImageUpload.ARG_IMAGE_URI) {

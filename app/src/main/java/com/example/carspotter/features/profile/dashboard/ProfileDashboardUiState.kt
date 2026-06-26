@@ -7,6 +7,8 @@ import com.example.carspotter.features.feed.CommentsSheetState
 import java.util.UUID
 
 data class ProfileDashboardUiState(
+    val isOwnProfile: Boolean = true,
+    val currentUserId: UUID? = null,
     val user: User? = null,
     val posts: List<FeedPost> = emptyList(),
     val nextCursor: FeedCursor? = null,
