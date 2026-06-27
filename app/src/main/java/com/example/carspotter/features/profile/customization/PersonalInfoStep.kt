@@ -3,11 +3,14 @@ package com.example.carspotter.features.profile.customization
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,6 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.carspotter.core.ui.scaling.LocalProfileScale
+import com.example.carspotter.core.ui.scaling.LocalProfileVSpacingScale
+import com.example.carspotter.core.ui.scaling.profileScaled
+import com.example.carspotter.core.ui.scaling.profileScaledV
+import com.example.carspotter.core.ui.scaling.rememberProfileScale
+import com.example.carspotter.core.ui.scaling.rememberProfileVSpacingScale
 import com.example.carspotter.core.ui.components.CustomSnackbar
 import com.example.carspotter.features.auth.ScreenBackground
 import com.example.carspotter.features.profile.components.BirthDateField
@@ -53,12 +62,20 @@ fun PersonalInfoStep(
                 .padding(padding)
         ) {
             ScreenBackground {
+                CompositionLocalProvider(
+                    LocalProfileScale provides rememberProfileScale(),
+                    LocalProfileVSpacingScale provides rememberProfileVSpacingScale(),
+                ) {
                 PersonalInfoForm(
                     uiState = uiState,
                     onAction = { action ->
                         when (action) {
                             is ProfileCustomizationAction.UpdateProfileImage -> viewModel.updateProfileImage(
                                 action.imageSource
+                            )
+
+                            is ProfileCustomizationAction.UpdateProfileTransform -> viewModel.onProfileTransformChanged(
+                                action.state
                             )
 
                             is ProfileCustomizationAction.UpdateFullName -> viewModel.updateFullName(
@@ -82,6 +99,7 @@ fun PersonalInfoStep(
                         }
                     },
                 )
+                } // CompositionLocalProvider
             }
             if (uiState.isFetchingBrands) {
                 Box(
@@ -107,9 +125,10 @@ private fun PersonalInfoForm(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 30.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp.profileScaled(), vertical = 30.dp.profileScaledV()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         PictureContainer(
             currentStep = uiState.currentStep,
@@ -125,7 +144,10 @@ private fun PersonalInfoForm(
                         )
                     )
                 )
-            }
+            },
+            onTransformChanged = { state ->
+                onAction(ProfileCustomizationAction.UpdateProfileTransform(state))
+            },
         )
         LabeledTextField(
             label = "Full name",
@@ -148,7 +170,7 @@ private fun PersonalInfoForm(
             onCountrySelected = { onAction(ProfileCustomizationAction.UpdateCountry(it.name)) }
         )
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(40.dp.profileScaledV()))
 
         NextStepButton(
             text = "Next",

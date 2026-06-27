@@ -9,11 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import java.util.Base64
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,22 +31,12 @@ class StartDestinationViewModel @Inject constructor(
                 !onboardingDone -> Screen.Onboarding.route
                 tokens == null && legacyToken.isNullOrBlank() -> Screen.Auth.route
                 userId == null -> {
-                    if (tokens?.accessToken?.jwtScope() == "ONBOARDING") {
-                        Screen.ProfileCustomization.route
-                    } else {
-                        tokenStore?.clear()
-                        userPreferences.clearAuthData()
-                        Screen.Auth.route
-                    }
+                    tokenStore?.clear()
+                    userPreferences.clearAuthData()
+                    Screen.Auth.route
                 }
                 else -> Screen.Feed.route
             }
         }
     }
-
-    private fun String.jwtScope(): String? = runCatching {
-        val payload = split(".").getOrNull(1) ?: return null
-        val json = String(Base64.getUrlDecoder().decode(payload), Charsets.UTF_8)
-        Json.parseToJsonElement(json).jsonObject["scope"]?.jsonPrimitive?.contentOrNull
-    }.getOrNull()
 }

@@ -23,8 +23,12 @@ data class User(
     val country: String,
     val spotScore: Int = 0,
     val postCount: Int = 0,
+    val isEarlySpotter: Boolean = false,
+    val earlySpotterNumber: Int? = null,
     @Serializable(with = InstantSerializer::class)
     val createdAt: Instant? = null,
     @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant? = null,
-)
+) {
+    val showEarlySpotter: Boolean get() = isEarlySpotter && earlySpotterNumber != null
+}

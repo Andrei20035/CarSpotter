@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -327,7 +328,7 @@ private fun FeedPostCard(
     Column(modifier = Modifier.fillMaxWidth()) {
         // ---- Header: avatar · username · car (+ location) · more ----
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AuthorAvatar(url = post.authorProfilePictureUrl, username = post.username, onClick = onAuthorClick)
+            AuthorAvatar(url = post.authorProfilePictureUrl, username = post.username, isEarlySpotter = post.authorShowEarlySpotter, onClick = onAuthorClick)
             Spacer(modifier = Modifier.width(RefAvatarUsernameSpacing.scaled()))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -501,7 +502,7 @@ private fun LikeIcon(
 
 /** Post author's avatar — the real profile picture, falling back to the placeholder. */
 @Composable
-private fun AuthorAvatar(url: String?, username: String, onClick: (() -> Unit)? = null) {
+private fun AuthorAvatar(url: String?, username: String, isEarlySpotter: Boolean = false, onClick: (() -> Unit)? = null) {
     val avatarSize = RefAvatarSize.scaled()
     // Guarantee minimum 48dp touch target regardless of scale: if the scaled padding would make the
     // total (avatar + 2×padding) fall below 48dp, expand the padding to compensate.
@@ -521,26 +522,39 @@ private fun AuthorAvatar(url: String?, username: String, onClick: (() -> Unit)? 
         },
         contentAlignment = Alignment.Center,
     ) {
-        val imageModifier = Modifier
-            .size(avatarSize)
-            .clip(CircleShape)
-        if (url.isNullOrBlank()) {
-            Image(
-                painter = painterResource(R.drawable.profile_picture),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = imageModifier,
-            )
-        } else {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = imageModifier,
-                placeholder = painterResource(R.drawable.profile_picture),
-                fallback = painterResource(R.drawable.profile_picture),
-                error = painterResource(R.drawable.profile_picture),
-            )
+        // Inner box so the ring overlays the avatar without affecting the outer touch target.
+        Box(contentAlignment = Alignment.Center) {
+            val imageModifier = Modifier
+                .size(avatarSize)
+                .clip(CircleShape)
+            if (url.isNullOrBlank()) {
+                Image(
+                    painter = painterResource(R.drawable.profile_picture),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = imageModifier,
+                )
+            } else {
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = imageModifier,
+                    placeholder = painterResource(R.drawable.profile_picture),
+                    fallback = painterResource(R.drawable.profile_picture),
+                    error = painterResource(R.drawable.profile_picture),
+                )
+            }
+            // es_ring.xml is 37×41dp (taller due to the bottom notch glyph); scale proportionally.
+            if (isEarlySpotter) {
+                Image(
+                    painter = painterResource(R.drawable.es_ring),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(avatarSize, avatarSize * (41f / 37f))
+                        .offset(y = avatarSize * ((41f / 37f - 1f) / 2f)),
+                )
+            }
         }
     }
 }

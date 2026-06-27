@@ -3,7 +3,9 @@ package com.example.carspotter.features.profile.customization
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carspotter.core.image.CropTransform
 import com.example.carspotter.core.image.ImageCompressor
+import com.example.carspotter.features.profile.components.ImageTransformState
 import com.example.carspotter.data.local.preferences.UserPreferences
 import com.example.carspotter.data.local.auth.AuthTokens
 import com.example.carspotter.data.local.auth.TokenStore
@@ -38,7 +40,11 @@ class ProfileCustomizationViewModel @Inject constructor(
     val uiState: StateFlow<ProfileCustomizationUiState> = _uiState.asStateFlow()
 
     fun updateProfileImage(imageSource: ImageSource?) {
-        _uiState.update { it.copy(profilePicture = imageSource) }
+        _uiState.update { it.copy(profilePicture = imageSource, profileCropTransform = null) }
+    }
+
+    fun onProfileTransformChanged(state: ImageTransformState) {
+        _uiState.update { it.copy(profileCropTransform = state) }
     }
 
     fun updateFullName(fullName: String) {
@@ -298,7 +304,16 @@ class ProfileCustomizationViewModel @Inject constructor(
         val profilePicture = _uiState.value.profilePicture as? ImageSource.Local ?: return true
 
         return try {
-            val compressedImage = imageCompressor.compressProfileImage(profilePicture.uri)
+            val cropTransform = _uiState.value.profileCropTransform?.toCropTransformOrNull()
+            val compressedImage = if (cropTransform != null) {
+                imageCompressor.compressWithCrop(
+                    profilePicture.uri,
+                    ImageCompressor.ProfileParams,
+                    cropTransform
+                )
+            } else {
+                imageCompressor.compressProfileImage(profilePicture.uri)
+            }
             when (val result = userRepository.uploadProfilePicture(
                 imageBytes = compressedImage.bytes,
                 mimeType = compressedImage.mimeType
@@ -361,4 +376,16 @@ class ProfileCustomizationViewModel @Inject constructor(
         }
     }
 
+}
+
+private fun ImageTransformState.toCropTransformOrNull(): CropTransform? {
+    if (imageSize.width <= 0f || imageSize.height <= 0f) return null
+    if (containerSize.width <= 0 || containerSize.height <= 0) return null
+    return CropTransform(
+        scale = scale,
+        offsetX = offset.x,
+        offsetY = offset.y,
+        containerW = containerSize.width.toFloat(),
+        containerH = containerSize.height.toFloat(),
+    )
 }

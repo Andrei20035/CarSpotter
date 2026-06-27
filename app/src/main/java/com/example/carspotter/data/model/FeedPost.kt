@@ -29,7 +29,11 @@ data class FeedPost(
      * provides a resolved place name — the UI hides the location row rather than fabricate one.
      */
     val locationLabel: String? = null,
+    val authorIsEarlySpotter: Boolean = false,
+    val authorEarlySpotterNumber: Int? = null,
 ) {
     /** e.g. "Porsche 911" — used as the headline car label in the feed card. */
     val carName: String get() = "$brand $model"
+
+    val authorShowEarlySpotter: Boolean get() = authorIsEarlySpotter && authorEarlySpotterNumber != null
 }

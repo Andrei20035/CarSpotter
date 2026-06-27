@@ -1,10 +1,12 @@
 package com.example.carspotter.features.profile.customization
 
+import com.example.carspotter.features.profile.components.ImageTransformState
 import java.time.LocalDate
 
 sealed class ProfileCustomizationAction {
     // Personal info actions
     data class UpdateProfileImage(val imageSource: ImageSource) : ProfileCustomizationAction()
+    data class UpdateProfileTransform(val state: ImageTransformState) : ProfileCustomizationAction()
     data class UpdateFullName(val fullName: String) : ProfileCustomizationAction()
     data class UpdateUsername(val username: String) : ProfileCustomizationAction()
     data class UpdateBirthDate(val birthDate: LocalDate): ProfileCustomizationAction()

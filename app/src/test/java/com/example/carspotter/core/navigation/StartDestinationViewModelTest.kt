@@ -1,11 +1,14 @@
 package com.example.carspotter.core.navigation
 
 import com.example.carspotter.MainDispatcherRule
+import com.example.carspotter.data.local.auth.AuthTokens
+import com.example.carspotter.data.local.auth.TokenStore
 import com.example.carspotter.data.local.preferences.UserPreferences
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -32,6 +35,12 @@ class StartDestinationViewModelTest {
         every { authToken } returns flowOf(token)
         every { this@apply.userId } returns flowOf(userId)
         coEvery { clearAuthData() } returns Unit
+        coEvery { removeLegacyJwt() } returns Unit
+    }
+
+    private fun tokenStoreMock(tokens: AuthTokens?): TokenStore = mockk<TokenStore>().apply {
+        every { read() } returns tokens
+        every { clear() } returns Unit
     }
 
     @Test
@@ -58,6 +67,17 @@ class StartDestinationViewModelTest {
         val vm = StartDestinationViewModel(prefs)
 
         assertEquals(Screen.Auth.route, vm.startDestination.value)
+        coVerify(exactly = 1) { prefs.clearAuthData() }
+    }
+
+    @Test
+    fun `token onboarding in TokenStore si userId null - curata sesiunea locala si duce la Auth`() = runTest {
+        val prefs = prefsMock(onboardingDone = true, token = null, userId = null)
+        val tokenStore = tokenStoreMock(AuthTokens(accessToken = "onboarding-jwt", refreshToken = "refresh"))
+        val vm = StartDestinationViewModel(prefs, tokenStore)
+
+        assertEquals(Screen.Auth.route, vm.startDestination.value)
+        verify(exactly = 1) { tokenStore.clear() }
         coVerify(exactly = 1) { prefs.clearAuthData() }
     }
 

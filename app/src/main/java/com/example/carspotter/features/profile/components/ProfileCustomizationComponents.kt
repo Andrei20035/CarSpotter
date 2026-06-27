@@ -8,6 +8,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,14 +52,21 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import com.example.carspotter.core.ui.scaling.profileScaled
+import com.example.carspotter.core.ui.scaling.profileScaledText
+import com.example.carspotter.core.ui.scaling.profileScaledV
+import kotlinx.coroutines.delay
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.IntSize
@@ -70,6 +82,31 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+/**
+ * Produces a deterministic TextStyle for ProfileCustomization input fields.
+ * - lineHeight is 1.3× fontSize so descenderii nu ies din line box pe niciun font de sistem
+ * - includeFontPadding = false elimină padding-ul legacy care diferă între device-uri
+ * - LineHeightStyle.Alignment.Center centrează glifa identic pe toate device-urile
+ *
+ * Folosit atât pentru textStyle cât și pentru placeholder astfel încât metricile
+ * verticale să fie identice și clipping-ul să fie eliminat (vezi planul de fix).
+ */
+@Composable
+private fun profileFieldTextStyle(
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    color: androidx.compose.ui.graphics.Color = Color(0xFF434343),
+): TextStyle = TextStyle(
+    color = color,
+    fontSize = fontSize,
+    lineHeight = fontSize * 1.3f,
+    fontWeight = FontWeight.Medium,
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None,
+    ),
+)
+
 @Composable
 fun PictureContainer(
     modifier: Modifier = Modifier,
@@ -78,6 +115,7 @@ fun PictureContainer(
     text: String,
     onImageSelected: (Uri) -> Unit,
     onBackPress: ((ProfileCustomizationAction) -> Unit)? = null,
+    onTransformChanged: ((ImageTransformState) -> Unit)? = null,
 ) {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -106,8 +144,10 @@ fun PictureContainer(
                 if (currentStep == ProfileStep.Car) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        tint = Color.White,
                         contentDescription = "Back",
                         modifier = Modifier
+                            .size(36.dp.profileScaled())
                             .clickable {
                                 onBackPress?.invoke(ProfileCustomizationAction.PreviousStep)
                             }
@@ -116,7 +156,7 @@ fun PictureContainer(
                 Text(
                     text = text,
                     color = Color(0xFFDBB8B8),
-                    fontSize = 18.sp,
+                    fontSize = 22.sp.profileScaledText(),
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center)
@@ -126,15 +166,23 @@ fun PictureContainer(
 
         val containerModifier = when (currentStep) {
                 ProfileStep.Personal -> Modifier
-                    .size(140.dp)
+                    .size(167.dp.profileScaled())
                     .clip(imageShape)
 
                 ProfileStep.Car -> Modifier
                     .fillMaxWidth()
-                    .aspectRatio(3f/2f)
+                    .aspectRatio(17f / 10f)
                     .clip(imageShape)
             }
-                .background(Color.White.copy(alpha = 0.9f))
+                .background(Color(0xFFD9D9D9))
+
+        var showHint by remember(picture) { mutableStateOf(picture != null) }
+        LaunchedEffect(picture) {
+            if (picture != null) {
+                delay(1500)
+                showHint = false
+            }
+        }
 
         Box(
             modifier = if (picture == null) {
@@ -153,7 +201,9 @@ fun PictureContainer(
                             .fillMaxSize(),
                         shape = imageShape,
                         onClick = { launcher.launch("image/*") },
+                        onTransformChanged = onTransformChanged,
                     )
+                    PinchHintOverlay(visible = showHint)
                 }
 
                 is ImageSource.Remote -> {
@@ -164,7 +214,9 @@ fun PictureContainer(
                             .fillMaxSize(),
                         shape = imageShape,
                         onClick = { launcher.launch("image/*") },
+                        onTransformChanged = onTransformChanged,
                     )
+                    PinchHintOverlay(visible = showHint)
                 }
 
                 null -> {
@@ -173,16 +225,85 @@ fun PictureContainer(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add image",
                             tint = Color.Gray,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp.profileScaled())
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Add an image",
                             color = Color.Gray,
-                            fontSize = 12.sp
+                            fontSize = 12.sp.profileScaledText()
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * One-shot pinch hint overlay: two animated finger circles moving toward each other,
+ * with a "Pinch to zoom" label. Shown for 1.5 s after the user picks an image.
+ * Captures no gestures — the real pinch/pan from EditableImageContainer works underneath.
+ */
+@Composable
+internal fun PinchHintOverlay(visible: Boolean) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(300)),
+        exit  = fadeOut(animationSpec = tween(400)),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.28f)),
+            )
+
+            val infiniteTransition = rememberInfiniteTransition(label = "pinch_hint")
+            val progress by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(700, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "pinch_progress",
+            )
+
+            val spreadDp = androidx.compose.ui.unit.lerp(40.dp, 10.dp, progress)
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .offset(x = -spreadDp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.85f)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .offset(x = spreadDp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.85f)),
+                    )
+                }
+                Text(
+                    text = "Pinch to zoom",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }
@@ -340,40 +461,36 @@ fun DropdownFieldWithoutOverlay(
     Column(modifier = modifier) {
         Text(
             text = label,
-            color = Color(0xFFDBB8B8),
-            fontSize = 14.sp,
+            color = Color(0xFFDFA3A3),
+            fontSize = 13.73.sp.profileScaledText(),
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp, start = 8.dp)
         )
 
-        Box(modifier = Modifier.height(55.dp)) {
+        Box(modifier = Modifier.height(51.dp.profileScaled())) {
             OutlinedTextField(
                 value = selectedItem,
                 onValueChange = {},
                 readOnly = true,
                 modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(13.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.White.copy(alpha = 0.9f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.9f)
+                    focusedContainerColor = Color(0xFFD9D9D9),
+                    unfocusedContainerColor = Color(0xFFD9D9D9)
                 ),
                 trailingIcon = {
                     Image(
-                        painter = painterResource(id = R.drawable.arrow_drop_down_circle_24px),
+                        painter = painterResource(id = R.drawable.arrow_square_down),
                         contentDescription = "Drop down",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(33.dp.profileScaled())
                     )
                 },
                 singleLine = true,
-                textStyle = TextStyle(
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                textStyle = profileFieldTextStyle(fontSize = 13.73.sp.profileScaledText())
             )
             Box(
                 modifier = Modifier
@@ -482,8 +599,8 @@ fun LabeledTextField(
 ) {
     Text(
         text = label,
-        color = Color(0xFFDBB8B8),
-        fontSize = 14.sp,
+        color = Color(0xFFDFA3A3),
+        fontSize = 14.5.sp.profileScaledText(),
         fontWeight = FontWeight.Medium,
         modifier = Modifier
             .fillMaxWidth()
@@ -496,31 +613,29 @@ fun LabeledTextField(
         placeholder = {
             Text(
                 text = placeholderText,
-                color = Color.Gray.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Medium
+                style = profileFieldTextStyle(
+                    fontSize = 15.sp.profileScaledText(),
+                    color = Color(0xFF434343).copy(alpha = 0.5f),
+                ),
             )
         },
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
-            .height(55.dp),
-        shape = RoundedCornerShape(12.dp),
+            .padding(bottom = 23.dp.profileScaledV())
+            .height(54.dp.profileScaled()),
+        shape = RoundedCornerShape(13.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,
-            focusedContainerColor = Color.White.copy(alpha = 0.9f),
-            unfocusedContainerColor = Color.White.copy(alpha = 0.9f)
+            focusedContainerColor = Color(0xFFD9D9D9),
+            unfocusedContainerColor = Color(0xFFD9D9D9)
         ),
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next
         ),
-        textStyle = TextStyle(
-            color = Color.Black,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
+        textStyle = profileFieldTextStyle(fontSize = 15.sp.profileScaledText())
     )
 }
 
@@ -560,8 +675,8 @@ fun BirthDateField(
     Column(modifier = modifier) {
         Text(
             text = "Birthdate",
-            color = Color(0xFFDBB8B8),
-            fontSize = 14.sp,
+            color = Color(0xFFDFA3A3),
+            fontSize = 14.5.sp.profileScaledText(),
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .fillMaxWidth()
@@ -578,31 +693,29 @@ fun BirthDateField(
             placeholder = {
                 Text(
                     text = "01/12/2002",
-                    color = Color.Gray.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Medium
+                    style = profileFieldTextStyle(
+                        fontSize = 15.5.sp.profileScaledText(),
+                        color = Color(0xFF434343).copy(alpha = 0.5f),
+                    ),
                 )
             },
             onValueChange = {},
             interactionSource = interactionSource,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .height(55.dp),
+                .padding(bottom = 23.dp.profileScaledV())
+                .height(54.dp.profileScaled()),
             readOnly = true,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(13.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White.copy(alpha = 0.9f),
-                unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
-                disabledContainerColor = Color.White.copy(alpha = 0.9f)
+                focusedContainerColor = Color(0xFFD9D9D9),
+                unfocusedContainerColor = Color(0xFFD9D9D9),
+                disabledContainerColor = Color(0xFFD9D9D9)
             ),
             singleLine = true,
-            textStyle = TextStyle(
-                color = Color.Black,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            ),
+            textStyle = profileFieldTextStyle(fontSize = 15.5.sp.profileScaledText()),
         )
     }
 }
@@ -649,8 +762,8 @@ fun CountryDropdown(
     Column(modifier = modifier) {
         Text(
             text = "Country",
-            color = Color(0xFFDBB8B8),
-            fontSize = 14.sp,
+            color = Color(0xFFDFA3A3),
+            fontSize = 14.5.sp.profileScaledText(),
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .fillMaxWidth()
@@ -668,27 +781,23 @@ fun CountryDropdown(
                 interactionSource = interactionSource,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(54.dp.profileScaled()),
+                shape = RoundedCornerShape(13.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.White.copy(alpha = 0.9f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.9f)
+                    focusedContainerColor = Color(0xFFD9D9D9),
+                    unfocusedContainerColor = Color(0xFFD9D9D9)
                 ),
                 trailingIcon = {
                     Image(
-                        painter = painterResource(id = R.drawable.arrow_drop_down_circle_24px),
+                        painter = painterResource(id = R.drawable.arrow_square_down),
                         contentDescription = "Drop down",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(33.dp.profileScaled())
                     )
                 },
                 singleLine = true,
-                textStyle = TextStyle(
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                ),
+                textStyle = profileFieldTextStyle(fontSize = 15.5.sp.profileScaledText()),
             )
 
         }
@@ -778,7 +887,8 @@ fun CountryDropdown(
 @Composable
 fun NextStepButton(
     text: String,
-    onClick: (ProfileCustomizationAction) -> Unit
+    onClick: (ProfileCustomizationAction) -> Unit,
+    buttonHeight: Dp = 54.dp,
 ) {
     Button(
         onClick = {
@@ -786,9 +896,8 @@ fun NextStepButton(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(28.dp),
+            .height(buttonHeight.profileScaled()),
+        shape = RoundedCornerShape(33.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFFF0AB25),
             disabledContainerColor = Color(0xFFF0AB25).copy(alpha = 0.7f),
@@ -798,8 +907,8 @@ fun NextStepButton(
         Text(
             text = text,
             color = Color.Black,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
+            fontSize = 19.sp.profileScaledText(),
+            fontWeight = FontWeight.Normal
         )
     }
 }
@@ -811,8 +920,8 @@ fun SkipCarInfoText(
 ) {
     Text(
         text = "Skip this step",
-        color = Color.Gray,
-        fontSize = 14.sp,
+        color = Color(0xFF878787),
+        fontSize = 17.sp.profileScaledText(),
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = {

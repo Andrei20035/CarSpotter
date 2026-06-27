@@ -30,6 +30,8 @@ data class ProfileDashboardUiState(
     val userMessage: String? = null,
     /** True while the delete-confirmation dialog is open for the selected post. */
     val showDeleteConfirm: Boolean = false,
+    /** True while the Early Spotter info overlay is open. */
+    val showEarlySpotterInfo: Boolean = false,
     /** Post id whose delete request is in flight — guards against double-tap. */
     val deleteInFlight: UUID? = null,
 ) {

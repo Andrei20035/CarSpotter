@@ -123,6 +123,7 @@ fun ProfileDashboardScreen(
                     uiState = uiState,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
                     onBackClick = { navController.popBackStack() },
+                    onEarlySpotterClick = { viewModel.showEarlySpotterInfo() },
                 )
             }
 
@@ -271,6 +272,15 @@ fun ProfileDashboardScreen(
             }
         }
 
+        // Early Spotter info overlay — opened from the badge pill.
+        val esNumber = uiState.user?.earlySpotterNumber
+        if (uiState.showEarlySpotterInfo && uiState.user?.isEarlySpotter == true && esNumber != null) {
+            EarlySpotterInfoOverlay(
+                number = esNumber,
+                onDismiss = { viewModel.dismissEarlySpotterInfo() },
+            )
+        }
+
         // Comments sheet — opened from the see-post overlay.
         uiState.commentsSheet?.let { sheet ->
             CommentsSheet(
@@ -330,6 +340,7 @@ private fun ProfileHeaderSection(
     uiState: ProfileDashboardUiState,
     onSettingsClick: () -> Unit,
     onBackClick: () -> Unit,
+    onEarlySpotterClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -391,8 +402,11 @@ private fun ProfileHeaderSection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            EarlySpotterBadge()
+            val esNumber = uiState.user?.earlySpotterNumber
+            if (uiState.user?.isEarlySpotter == true && esNumber != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                EarlySpotterBadge(number = esNumber, onClick = onEarlySpotterClick)
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -428,10 +442,15 @@ private fun ProfileHeaderSection(
 }
 
 @Composable
-private fun EarlySpotterBadge() {
+private fun EarlySpotterBadge(number: Int, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
             .background(Color(0xFF1A1E2E))
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -443,7 +462,7 @@ private fun EarlySpotterBadge() {
         )
         Spacer(modifier = Modifier.width(5.dp))
         Text(
-            text = "#1 Early Spotter",
+            text = "#$number Early Spotter",
             color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,

@@ -344,8 +344,8 @@ class ImageCompressor @Inject constructor(
         }
 
         val ProfileParams = Params(
-            maxWidthPx = 512,
-            maxHeightPx = 512,
+            maxWidthPx = 384,
+            maxHeightPx = 384,
             jpegQuality = 80
         )
 

@@ -35,6 +35,8 @@ data class FeedPostDto(
     val likeCount: Long = 0,
     val commentCount: Long = 0,
     val likedByCurrentUser: Boolean = false,
+    val authorIsEarlySpotter: Boolean = false,
+    val authorEarlySpotterNumber: Int? = null,
 )
 
 fun FeedPostDto.toDomain(): FeedPost = FeedPost(
@@ -53,6 +55,8 @@ fun FeedPostDto.toDomain(): FeedPost = FeedPost(
     commentCount = commentCount,
     likedByCurrentUser = likedByCurrentUser,
     locationLabel = buildLocationLabel(town, country),
+    authorIsEarlySpotter = authorIsEarlySpotter,
+    authorEarlySpotterNumber = authorEarlySpotterNumber,
 )
 
 /** Joins town/country into the feed card's location label, tolerating either being absent. */

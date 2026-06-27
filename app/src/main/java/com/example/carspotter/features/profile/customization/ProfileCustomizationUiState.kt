@@ -2,6 +2,7 @@ package com.example.carspotter.features.profile.customization
 
 import android.net.Uri
 import com.example.carspotter.data.remote.dto.car_model.CarModelOption
+import com.example.carspotter.features.profile.components.ImageTransformState
 import java.time.LocalDate
 import java.util.UUID
 
@@ -20,6 +21,7 @@ data class ProfileCustomizationUiState(
     val modelsForSelectedBrand: List<CarModelOption> = emptyList(),
 
     val profilePicture: ImageSource? = null,
+    val profileCropTransform: ImageTransformState? = null,
     val fullName: String = "",
     val username: String = "",
     val country: String = "",

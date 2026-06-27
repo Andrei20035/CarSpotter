@@ -219,6 +219,14 @@ class ProfileDashboardViewModel @Inject constructor(
         _uiState.update { it.copy(userMessage = null) }
     }
 
+    fun showEarlySpotterInfo() {
+        _uiState.update { it.copy(showEarlySpotterInfo = true) }
+    }
+
+    fun dismissEarlySpotterInfo() {
+        _uiState.update { it.copy(showEarlySpotterInfo = false) }
+    }
+
     // ---- Likes ----
 
     fun onLikeToggle(postId: UUID) {
