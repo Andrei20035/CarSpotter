@@ -25,6 +25,7 @@ data class User(
     val postCount: Int = 0,
     val isEarlySpotter: Boolean = false,
     val earlySpotterNumber: Int? = null,
+    val streakDays: Int = 0,
     @Serializable(with = InstantSerializer::class)
     val createdAt: Instant? = null,
     @Serializable(with = InstantSerializer::class)

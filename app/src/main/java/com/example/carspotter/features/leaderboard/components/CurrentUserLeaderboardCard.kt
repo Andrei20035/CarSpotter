@@ -39,6 +39,7 @@ private val CardShape       = RoundedCornerShape(12.dp)
 fun CurrentUserLeaderboardCard(
     standing: CurrentUserStanding,
     modifier: Modifier = Modifier,
+    onAvatarClick: () -> Unit = {},
 ) {
     Row(
         modifier = modifier
@@ -80,7 +81,12 @@ fun CurrentUserLeaderboardCard(
         Spacer(Modifier.width(12.dp))
 
         // ── Avatar ────────────────────────────────────────────────────────
-        LeaderboardAvatar(url = standing.entry.avatarUrl, size = 37.dp)
+        LeaderboardAvatar(
+            url = standing.entry.avatarUrl,
+            size = 37.dp,
+            username = standing.entry.username,
+            onClick = onAvatarClick,
+        )
 
         Spacer(Modifier.width(10.dp))
 

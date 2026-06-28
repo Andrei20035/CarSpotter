@@ -38,6 +38,7 @@ private val StreakColor    = Color(0xFFFF6641)
 fun LeaderboardUserRow(
     entry: LeaderboardEntry,
     modifier: Modifier = Modifier,
+    onAvatarClick: () -> Unit = {},
 ) {
     Row(
         modifier = modifier
@@ -62,7 +63,12 @@ fun LeaderboardUserRow(
         )
 
         // ── Avatar ────────────────────────────────────────────────────────
-        LeaderboardAvatar(url = entry.avatarUrl, size = 37.dp)
+        LeaderboardAvatar(
+            url = entry.avatarUrl,
+            size = 37.dp,
+            username = entry.username,
+            onClick = onAvatarClick,
+        )
 
         Spacer(Modifier.width(12.dp))
 

@@ -2,6 +2,7 @@ package com.example.carspotter.features.profile.dashboard
 
 import android.os.Build
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,6 +53,9 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 import com.example.carspotter.R
 import com.example.carspotter.core.ui.theme.Poppins
 import com.example.carspotter.core.util.toPostDate

@@ -18,8 +18,6 @@ data class ProfileDashboardUiState(
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
-    /** Placeholder until the backend exposes a real streak field. */
-    val streakDays: Int = PLACEHOLDER_STREAK_DAYS,
     /** Non-null while the see-post overlay is open. */
     val selectedPostId: UUID? = null,
     /** Non-null while the comments sheet is open (scoped to the selected post). */
@@ -44,10 +42,10 @@ data class ProfileDashboardUiState(
     val postCount: Int
         get() = user?.postCount ?: 0
 
+    val streakDays: Int
+        get() = user?.streakDays ?: 0
+
     val selectedPost: FeedPost?
         get() = selectedPostId?.let { id -> posts.firstOrNull { it.id == id } }
 
-    companion object {
-        const val PLACEHOLDER_STREAK_DAYS = 0
-    }
 }

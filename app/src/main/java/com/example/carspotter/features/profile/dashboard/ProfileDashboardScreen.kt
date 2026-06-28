@@ -2,11 +2,13 @@ package com.example.carspotter.features.profile.dashboard
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -60,13 +62,25 @@ import com.example.carspotter.core.ui.components.FloatingBottomNav
 import com.example.carspotter.core.ui.components.shimmer
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.runtime.CompositionLocalProvider
+import com.example.carspotter.core.ui.scaling.LocalProfileDashScale
+import com.example.carspotter.core.ui.scaling.LocalProfileDashVSpacingScale
+import com.example.carspotter.core.ui.scaling.dashScaled
+import com.example.carspotter.core.ui.scaling.dashScaledText
+import com.example.carspotter.core.ui.scaling.dashScaledV
+import com.example.carspotter.core.ui.scaling.rememberProfileDashScale
+import com.example.carspotter.core.ui.scaling.rememberProfileDashVSpacingScale
 import com.example.carspotter.features.feed.components.CommentsSheet
 import com.example.carspotter.features.feed.components.rememberPostCreationLauncher
 
-private val DarkBackground = Color(0xFF05081D)
-private val CardSurface = Color(0xFF131929)
-private val TextMuted = Color(0xFF8A8FA8)
-private val ProfileAccent = Color(0xFF34D7C4)
+// Figma tokens — ProfileDashboardScreen (node 790:1216, frame 402×874dp)
+private val DarkBackground     = Color(0xFF05071B)   // gradient end; used as solid fallback
+private val CardSurface        = Color(0xFF131929)   // tile / button background (unchanged)
+private val StatsCardSurface   = Color(0xFF1C1C1C)   // Figma StatsCard fill
+private val StatsCardBorder    = Color(0xFF545454)   // Figma StatsCard border 1dp
+private val TextMuted          = Color(0xFF707070)   // Figma location / label color
+private val ProfileAccent      = Color(0xFF34D7C4)
+private val BadgeBackground    = Color(0xFF242424)   // Figma Early Spotter badge fill
 
 private enum class TileState { Loading, Success, Error }
 
@@ -104,17 +118,28 @@ fun ProfileDashboardScreen(
         if (shouldLoadMore) viewModel.loadNextPage()
     }
 
+    CompositionLocalProvider(
+        LocalProfileDashScale provides rememberProfileDashScale(),
+        LocalProfileDashVSpacingScale provides rememberProfileDashVSpacingScale(),
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.00f to Color(0xFF000000),
+                        0.40f to DarkBackground,
+                    )
+                )
+            )
     ) {
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Fixed(3),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 120.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp.dashScaled()),
+            verticalArrangement = Arrangement.spacedBy(7.dp.dashScaledV()),
+            contentPadding = PaddingValues(bottom = 120.dp, start = 10.dp, end = 10.dp),
             modifier = Modifier.fillMaxSize().hazeSource(hazeState),
         ) {
             // ── Header: profile row ──────────────────────────────────────
@@ -292,14 +317,15 @@ fun ProfileDashboardScreen(
             )
         }
     }
+    } // end CompositionLocalProvider(LocalProfileDashScale)
 }
 
 @Composable
 private fun ProfileGridSkeletonTile() {
     Box(
         modifier = Modifier
-            .aspectRatio(1f)
-            .shimmer(RoundedCornerShape(4.dp)),
+            .aspectRatio(121f / 154f)
+            .shimmer(RoundedCornerShape(10.dp)),
     )
 }
 
@@ -312,8 +338,8 @@ private fun ProfilePostTile(
     var tileState by remember(imageUrl) { mutableStateOf(TileState.Loading) }
     Box(
         modifier = Modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(4.dp))
+            .aspectRatio(121f / 154f)
+            .clip(RoundedCornerShape(10.dp))
             .background(CardSurface)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -345,10 +371,10 @@ private fun ProfileHeaderSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .padding(vertical = 20.dp.dashScaledV()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Avatar
+        // Avatar — Figma: 121×121dp circular
         val avatarUrl = uiState.user?.profilePicturePath
         if (avatarUrl.isNullOrBlank()) {
             Image(
@@ -356,7 +382,7 @@ private fun ProfileHeaderSection(
                 contentDescription = "Avatar",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(121.dp.dashScaled())
                     .clip(CircleShape),
             )
         } else {
@@ -365,7 +391,7 @@ private fun ProfileHeaderSection(
                 contentDescription = "Avatar",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(121.dp.dashScaled())
                     .clip(CircleShape),
                 placeholder = painterResource(R.drawable.profile_picture),
                 fallback = painterResource(R.drawable.profile_picture),
@@ -373,39 +399,56 @@ private fun ProfileHeaderSection(
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(17.dp.dashScaled()))
 
         // Username + location + badge
-        Column {
-            Text(
-                text = uiState.user?.username ?: "",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-            )
-
-            val country = uiState.user?.country?.takeIf { it.isNotBlank() }
-            if (country != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_gps),
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = country,
-                        color = TextMuted,
-                        fontSize = 13.sp,
-                    )
-                }
+        if (uiState.isLoadingUser) {
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp.dashScaledV())) {
+                Box(
+                    modifier = Modifier
+                        .width(100.dp.dashScaled())
+                        .height(16.dp.dashScaledV())
+                        .shimmer(RoundedCornerShape(4.dp))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(70.dp.dashScaled())
+                        .height(12.dp.dashScaledV())
+                        .shimmer(RoundedCornerShape(4.dp))
+                )
             }
+        } else {
+            Column {
+                Text(
+                    text = uiState.user?.username ?: "",
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 22.sp.dashScaledText(),
+                )
 
-            val esNumber = uiState.user?.earlySpotterNumber
-            if (uiState.user?.isEarlySpotter == true && esNumber != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                EarlySpotterBadge(number = esNumber, onClick = onEarlySpotterClick)
+                val country = uiState.user?.country?.takeIf { it.isNotBlank() }
+                if (country != null) {
+                    Spacer(modifier = Modifier.height(7.dp.dashScaledV()))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_gps),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp.dashScaled()),
+                        )
+                        Spacer(modifier = Modifier.width(2.dp.dashScaled()))
+                        Text(
+                            text = country,
+                            color = TextMuted,
+                            fontSize = 15.sp.dashScaledText(),
+                        )
+                    }
+                }
+
+                val esNumber = uiState.user?.earlySpotterNumber
+                if (uiState.user?.isEarlySpotter == true && esNumber != null) {
+                    Spacer(modifier = Modifier.height(10.dp.dashScaledV()))
+                    EarlySpotterBadge(number = esNumber, onClick = onEarlySpotterClick)
+                }
             }
         }
 
@@ -413,7 +456,7 @@ private fun ProfileHeaderSection(
 
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(38.dp.dashScaled())
                 .clip(CircleShape)
                 .background(CardSurface),
             contentAlignment = Alignment.Center,
@@ -451,20 +494,20 @@ private fun EarlySpotterBadge(number: Int, onClick: () -> Unit) {
                 indication = null,
                 onClick = onClick,
             )
-            .background(Color(0xFF1A1E2E))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .background(BadgeBackground)
+            .padding(horizontal = 10.dp.dashScaled(), vertical = 4.dp.dashScaledV()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(R.drawable.early_spotter_badge),
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(16.dp.dashScaled()),
         )
-        Spacer(modifier = Modifier.width(5.dp))
+        Spacer(modifier = Modifier.width(5.dp.dashScaled()))
         Text(
             text = "#$number Early Spotter",
             color = Color.White,
-            fontSize = 12.sp,
+            fontSize = 10.sp.dashScaledText(),
             fontWeight = FontWeight.Medium,
         )
     }
@@ -472,50 +515,79 @@ private fun EarlySpotterBadge(number: Int, onClick: () -> Unit) {
 
 @Composable
 private fun StatsCard(uiState: ProfileDashboardUiState) {
+    val cardRadius = 12.dp.dashScaled()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(CardSurface)
-            .padding(vertical = 16.dp),
+            .padding(bottom = 20.dp.dashScaledV())
+            .border(1.dp, StatsCardBorder, RoundedCornerShape(cardRadius))
+            .clip(RoundedCornerShape(cardRadius))
+            .background(StatsCardSurface)
+            .height(72.dp.dashScaled()),
         horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatItem(label = "SpotScore", value = "${uiState.user?.spotScore ?: 0}")
-        StatDivider()
-        StreakItem(days = uiState.streakDays)
-        StatDivider()
-        StatItem(label = "Spots", value = "${uiState.postCount}")
+        if (uiState.isLoadingUser) {
+            StatSkeletonItem()
+            StatDivider()
+            StatSkeletonItem()
+            StatDivider()
+            StatSkeletonItem()
+        } else {
+            StatItem(label = "SpotScore", value = "${uiState.user?.spotScore ?: 0}")
+            StatDivider()
+            StreakItem(days = uiState.streakDays)
+            StatDivider()
+            StatItem(label = "Spots", value = "${uiState.postCount}")
+        }
+    }
+}
+
+@Composable
+private fun StatSkeletonItem() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .width(48.dp.dashScaled())
+                .height(14.dp.dashScaledV())
+                .shimmer(RoundedCornerShape(4.dp))
+        )
+        Spacer(modifier = Modifier.height(4.dp.dashScaledV()))
+        Box(
+            modifier = Modifier
+                .width(36.dp.dashScaled())
+                .height(18.dp.dashScaledV())
+                .shimmer(RoundedCornerShape(4.dp))
+        )
     }
 }
 
 @Composable
 private fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, color = TextMuted, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = label, color = TextMuted, fontSize = 16.sp.dashScaledText())
+        Spacer(modifier = Modifier.height(4.dp.dashScaledV()))
+        Text(text = value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp.dashScaledText())
     }
 }
 
 @Composable
 private fun StreakItem(days: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "Streak", color = TextMuted, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = "Streak", color = TextMuted, fontSize = 16.sp.dashScaledText())
+        Spacer(modifier = Modifier.height(4.dp.dashScaledV()))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(R.drawable.fire),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(17.dp.dashScaled()),
             )
-            Spacer(modifier = Modifier.width(3.dp))
+            Spacer(modifier = Modifier.width(3.dp.dashScaled()))
             Text(
                 text = "$days Days",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 20.sp.dashScaledText(),
             )
         }
     }
@@ -526,7 +598,7 @@ private fun StatDivider() {
     Box(
         modifier = Modifier
             .width(1.dp)
-            .height(36.dp)
+            .height(36.dp.dashScaled())
             .background(Color.White.copy(alpha = 0.08f))
     )
 }

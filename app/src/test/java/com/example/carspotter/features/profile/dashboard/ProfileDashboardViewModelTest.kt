@@ -46,18 +46,20 @@ class ProfileDashboardViewModelTest {
     private val currentUserId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
     private val foreignUserId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
-    private fun currentUser() = User(
+    private fun currentUser(streakDays: Int = 0) = User(
         id = currentUserId,
         fullName = "Current User",
         username = "current_user",
         country = "Romania",
+        streakDays = streakDays,
     )
 
-    private fun foreignUser() = User(
+    private fun foreignUser(streakDays: Int = 0) = User(
         id = foreignUserId,
         fullName = "Foreign User",
         username = "foreign_user",
         country = "France",
+        streakDays = streakDays,
     )
 
     private fun emptyFeedResult() = FeedResult(
@@ -224,6 +226,45 @@ class ProfileDashboardViewModelTest {
 
         vm.confirmDeletePost()
         coVerify(exactly = 0) { postRepository.deletePost(any()) }
+    }
+
+    // ── Streak ────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `user cu streakDays pozitiv - uiState streakDays reflecta valoarea`() = runTest {
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Success(currentUser(streakDays = 5))
+        coEvery { postRepository.getUserPosts(currentUserId, any(), any()) } returns
+            ApiResult.Success(emptyFeedResult())
+
+        val vm = buildVm(ownerSavedStateHandle())
+        advanceUntilIdle()
+
+        assertEquals(5, vm.uiState.value.streakDays)
+    }
+
+    @Test
+    fun `user cu streakDays zero - uiState streakDays este zero`() = runTest {
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Success(currentUser(streakDays = 0))
+        coEvery { postRepository.getUserPosts(currentUserId, any(), any()) } returns
+            ApiResult.Success(emptyFeedResult())
+
+        val vm = buildVm(ownerSavedStateHandle())
+        advanceUntilIdle()
+
+        assertEquals(0, vm.uiState.value.streakDays)
+    }
+
+    @Test
+    fun `user null - uiState streakDays fallback la zero`() = runTest {
+        coEvery { userRepository.getCurrentUser() } returns ApiResult.Error("Network error")
+        coEvery { postRepository.getUserPosts(any(), any(), any()) } returns
+            ApiResult.Success(emptyFeedResult())
+
+        val vm = buildVm(ownerSavedStateHandle())
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.user)
+        assertEquals(0, vm.uiState.value.streakDays)
     }
 
     // ── Refresh și paginare ───────────────────────────────────────────────────

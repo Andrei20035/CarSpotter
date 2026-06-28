@@ -14,6 +14,7 @@ import com.example.carspotter.features.leaderboard.LeaderboardEntry
 fun PodiumSection(
     podium: List<LeaderboardEntry>,
     modifier: Modifier = Modifier,
+    onUserClick: (LeaderboardEntry) -> Unit = {},
 ) {
     // Guard: need exactly the top 3 entries to render.
     val first  = podium.firstOrNull { it.rank == 1 } ?: return
@@ -25,14 +26,13 @@ fun PodiumSection(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 13.dp)
             .padding(top = 16.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Bottom,  // cards share the same bottom edge
     ) {
         // Figma order: #2 left, #1 center, #3 right
-        PodiumUserCard(entry = second, modifier = Modifier.weight(1f))
-        PodiumUserCard(entry = first,  modifier = Modifier.weight(1f))
-        PodiumUserCard(entry = third,  modifier = Modifier.weight(1f))
+        PodiumUserCard(entry = second, modifier = Modifier.weight(1f), onAvatarClick = { onUserClick(second) })
+        PodiumUserCard(entry = first,  modifier = Modifier.weight(1f), onAvatarClick = { onUserClick(first) })
+        PodiumUserCard(entry = third,  modifier = Modifier.weight(1f), onAvatarClick = { onUserClick(third) })
     }
 }

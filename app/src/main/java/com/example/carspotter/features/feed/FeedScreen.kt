@@ -100,7 +100,7 @@ private val FeedAccent = Color(0xFF34D7C4)
 // Discreet dark placeholder shown behind a post image while it loads.
 private val ImagePlaceholder = Color(0xFF11162E)
 // Figma horizontal margin for cards: 375dp image inside the 402dp frame → ~13dp each side.
-private val CardHorizontalPadding = 13.dp
+private val CardHorizontalPadding = 10.dp
 // Number of shimmer skeleton cards shown during the initial feed load.
 private const val SKELETON_COUNT = 3
 

@@ -64,6 +64,7 @@ private val BadgeTextColor  = Color(0xFF393939)
 fun PodiumUserCard(
     entry: LeaderboardEntry,
     modifier: Modifier = Modifier,
+    onAvatarClick: () -> Unit = {},
 ) {
     val (badgeColor, cardHeight) = podiumStyle(entry.rank)
     // Total Box height = card height + badge that protrudes above the card.
@@ -100,7 +101,12 @@ fun PodiumUserCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                LeaderboardAvatar(url = entry.avatarUrl, size = AvatarImageSize)
+                LeaderboardAvatar(
+                    url = entry.avatarUrl,
+                    size = AvatarImageSize,
+                    username = entry.username,
+                    onClick = onAvatarClick,
+                )
             }
 
             AutoResizeUsernameText(

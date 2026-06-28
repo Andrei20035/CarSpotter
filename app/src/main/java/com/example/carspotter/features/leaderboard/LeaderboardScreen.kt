@@ -45,6 +45,14 @@ fun LeaderboardScreen(
     val openPostCreation = rememberPostCreationLauncher(navController)
     val hazeState = remember { HazeState() }
 
+    val onUserClick: (LeaderboardEntry) -> Unit = { entry ->
+        if (entry.userId == uiState.currentUser?.entry?.userId) {
+            navController.navigate(Screen.Profile.route) { launchSingleTop = true }
+        } else {
+            navController.navigate(Screen.Profile.createRoute(entry.userId))
+        }
+    }
+
     AppScreenBackground(
         foreground = {
             FloatingBottomNav(
@@ -103,28 +111,31 @@ fun LeaderboardScreen(
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 140.dp, top = 13.dp),
+                        contentPadding = PaddingValues(bottom = 140.dp, top = 13.dp, start = 10.dp, end = 10.dp),
                     ) {
                         uiState.currentUser?.let { standing ->
                             item {
                                 CurrentUserLeaderboardCard(
                                     standing = standing,
-                                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                                    onAvatarClick = { onUserClick(standing.entry) },
                                 )
                             }
                         }
 
                         if (uiState.podium.size >= 3) {
                             item {
-                                PodiumSection(podium = uiState.podium)
+                                PodiumSection(
+                                    podium = uiState.podium,
+                                    onUserClick = onUserClick,
+                                )
                             }
                         }
 
                         items(uiState.rest, key = { it.userId }) { entry ->
                             LeaderboardUserRow(
                                 entry = entry,
+                                onAvatarClick = { onUserClick(entry) },
                                 modifier = Modifier.padding(
-                                    horizontal = 13.dp,
                                     vertical = 4.dp,
                                 ),
                             )

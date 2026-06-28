@@ -13,6 +13,7 @@ import com.example.carspotter.data.repository.PostRepository
 import com.example.carspotter.data.repository.UserRepository
 import com.example.carspotter.features.feed.CommentsSheetState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
