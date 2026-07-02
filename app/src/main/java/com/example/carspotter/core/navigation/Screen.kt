@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     }
     object Camera : Screen("camera")
     object Leaderboard : Screen("leaderboard")
+    object Activity : Screen("activity")
 
     object EditProfile : Screen("edit_profile")
     object PersonalInfo : Screen("personal_info")

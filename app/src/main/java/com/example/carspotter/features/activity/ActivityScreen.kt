@@ -1,9 +1,12 @@
-package com.example.carspotter.features.leaderboard
+package com.example.carspotter.features.activity
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -18,60 +21,58 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.carspotter.core.navigation.Screen
 import com.example.carspotter.core.ui.components.AppScreenBackground
 import com.example.carspotter.core.ui.components.FeedNavItem
 import com.example.carspotter.core.ui.components.FloatingBottomNav
+import com.example.carspotter.core.ui.theme.Poppins
+import com.example.carspotter.features.activity.components.CommentActivityCard
+import com.example.carspotter.features.activity.components.LeaderboardUpCard
+import com.example.carspotter.features.activity.components.LikeActivityCard
+import com.example.carspotter.features.activity.components.StatCard
+import com.example.carspotter.features.activity.components.StreakCard
+import com.example.carspotter.features.activity.model.ActivityItem
 import com.example.carspotter.features.feed.components.rememberPostCreationLauncher
-import com.example.carspotter.features.leaderboard.components.CurrentUserLeaderboardCard
-import com.example.carspotter.features.leaderboard.components.LeaderboardUserRow
-import com.example.carspotter.features.leaderboard.components.PodiumSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaderboardScreen(
-    navController: NavHostController,
-    viewModel: LeaderboardViewModel = hiltViewModel(),
+fun ActivityScreen(
+    navController: NavController,
+    viewModel: ActivityViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val openPostCreation = rememberPostCreationLauncher(navController)
     val hazeState = remember { HazeState() }
 
-    val onUserClick: (LeaderboardEntry) -> Unit = { entry ->
-        if (entry.userId == uiState.currentUser?.entry?.userId) {
-            navController.navigate(Screen.Profile.route) { launchSingleTop = true }
-        } else {
-            navController.navigate(Screen.Profile.createRoute(entry.userId))
-        }
-    }
-
     AppScreenBackground(
         foreground = {
             FloatingBottomNav(
-                selected = FeedNavItem.Leaderboard,
-                profilePictureUrl = uiState.currentUser?.entry?.avatarUrl,
+                selected = FeedNavItem.Activity,
+                profilePictureUrl = uiState.currentUser?.profilePicturePath,
                 onHome = {
                     navController.navigate(Screen.Feed.route) {
                         popUpTo(Screen.Feed.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
-                onLeaderboard = { /* already here */ },
-                onPlus = openPostCreation,
-                onActivity = {
-                    navController.navigate(Screen.Activity.route) {
+                onLeaderboard = {
+                    navController.navigate(Screen.Leaderboard.route) {
                         popUpTo(Screen.Feed.route)
                         launchSingleTop = true
                     }
                 },
+                onPlus = openPostCreation,
+                onActivity = { /* already here */ },
                 onProfile = {
                     navController.navigate(Screen.Profile.route) {
                         popUpTo(Screen.Feed.route)
@@ -116,34 +117,58 @@ fun LeaderboardScreen(
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 140.dp, top = 13.dp, start = 10.dp, end = 10.dp),
+                        contentPadding = PaddingValues(bottom = 140.dp, top = 13.dp, start = 16.dp, end = 16.dp),
                     ) {
-                        uiState.currentUser?.let { standing ->
-                            item {
-                                CurrentUserLeaderboardCard(
-                                    standing = standing,
-                                    onAvatarClick = { onUserClick(standing.entry) },
-                                )
-                            }
-                        }
-
-                        if (uiState.podium.size >= 3) {
-                            item {
-                                PodiumSection(
-                                    podium = uiState.podium,
-                                    onUserClick = onUserClick,
-                                )
-                            }
-                        }
-
-                        items(uiState.rest, key = { it.userId }) { entry ->
-                            LeaderboardUserRow(
-                                entry = entry,
-                                onAvatarClick = { onUserClick(entry) },
-                                modifier = Modifier.padding(
-                                    vertical = 4.dp,
-                                ),
+                        item {
+                            Text(
+                                text = "Activity",
+                                color = Color.White,
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 35.sp,
                             )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                StatCard(
+                                    title = "Weekly SpotScore",
+                                    value = uiState.weeklySpotScore,
+                                    isWeeklyScore = true,
+                                )
+                                StatCard(
+                                    title = "Today's Interactions",
+                                    value = uiState.todayInteractions,
+                                    isWeeklyScore = false,
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        if (uiState.isEmpty) {
+                            item {
+                                Text(
+                                    text = "No activity yet.",
+                                    color = Color(0xFF9D9D9D),
+                                    modifier = Modifier.padding(vertical = 24.dp),
+                                )
+                            }
+                        } else {
+                            items(uiState.items, key = { it.id }) { activityItem ->
+                                Column {
+                                    when (activityItem) {
+                                        is ActivityItem.LikeItem -> LikeActivityCard(activityItem)
+                                        is ActivityItem.CommentItem -> CommentActivityCard(activityItem)
+                                        is ActivityItem.LeaderboardUpItem -> LeaderboardUpCard(activityItem)
+                                        is ActivityItem.StreakItem -> StreakCard(activityItem)
+                                    }
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+                            }
                         }
                     }
                 }

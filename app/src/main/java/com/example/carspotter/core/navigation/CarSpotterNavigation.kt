@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.carspotter.features.activity.ActivityScreen
 import com.example.carspotter.features.feed.FeedScreen
 import com.example.carspotter.features.upload.ImageUploadScreen
 import com.example.carspotter.features.auth.AuthScreen
@@ -99,6 +100,10 @@ fun CarSpotterNavigation(
 
         composable(Screen.Leaderboard.route) {
             LeaderboardScreen(navController = navController)
+        }
+
+        composable(Screen.Activity.route) {
+            ActivityScreen(navController = navController)
         }
 
         composable(Screen.EditProfile.route) {

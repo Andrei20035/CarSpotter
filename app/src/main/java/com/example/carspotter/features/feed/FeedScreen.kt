@@ -208,7 +208,12 @@ fun FeedScreen(
                     }
                 },
                 onPlus = openPostCreation,
-                onActivity = { /* TODO: navigate to activity once the screen exists */ },
+                onActivity = {
+                    navController.navigate(Screen.Activity.route) {
+                        popUpTo(Screen.Feed.route)
+                        launchSingleTop = true
+                    }
+                },
                 onProfile = { navController.navigate(Screen.Profile.route) },
                 hazeState = hazeState,
                 modifier = Modifier

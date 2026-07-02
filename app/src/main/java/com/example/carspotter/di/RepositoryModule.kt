@@ -1,5 +1,7 @@
 package com.example.carspotter.di
 
+import com.example.carspotter.data.repository.ActivityRepository
+import com.example.carspotter.data.repository.ActivityRepositoryImpl
 import com.example.carspotter.data.repository.AuthRepository
 import com.example.carspotter.data.repository.AuthRepositoryImpl
 import com.example.carspotter.data.repository.LeaderboardRepository
@@ -112,4 +114,10 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         impl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActivityRepository(
+        impl: ActivityRepositoryImpl
+    ): ActivityRepository
 }
